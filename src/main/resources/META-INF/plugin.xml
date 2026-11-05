@@ -1,0 +1,16 @@
+<idea-plugin>
+  <id>dev.dybug.routeros</id>
+  <name>RouterOS Script</name>
+  <vendor>dybug</vendor>
+  <resource-bundle>messages.RosBundle</resource-bundle>
+
+  <depends>com.intellij.modules.platform</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="RouterOS Script"
+              implementationClass="dev.dybug.routeros.RosFileType"
+              fieldName="INSTANCE"
+              language="RouterOS"
+              extensions="rsc"/>
+  </extensions>
+</idea-plugin>
