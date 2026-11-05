@@ -8,7 +8,10 @@ IntelliJ Platform 2025.1 or newer.
 Language support for **MikroTik RouterOS** scripts and `/export` configuration
 files (`.rsc`).
 
-- Syntax highlighting for scripts and exports (RouterOS v7, v6 best-effort)
+- Syntax highlighting for scripts and exports (RouterOS v7, v6 best-effort): menu paths,
+  properties, values, script commands, variables, string escapes and interpolation
+- Configurable colours (*Settings → Editor → Color Scheme → RouterOS Script*)
+- Brace matching, `#` line comments (Ctrl+/), quote handling, TODO highlighting
 - Works fully offline; no router required for editing features
 <!-- Plugin description end -->
 

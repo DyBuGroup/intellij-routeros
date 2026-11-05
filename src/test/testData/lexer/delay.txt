@@ -1,0 +1,8 @@
+RosTokenType.script command (':delay')
+WHITE_SPACE (' ')
+RosTokenType.word ('200ms')
+RosTokenType.; (';')
+WHITE_SPACE (' ')
+RosTokenType.script command (':delay')
+WHITE_SPACE (' ')
+RosTokenType.word ('00:00:01')

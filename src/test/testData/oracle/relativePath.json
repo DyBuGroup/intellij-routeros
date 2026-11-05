@@ -1,0 +1,20 @@
+{
+  "input": ".. print\n/.. \n",
+  "highlight": [
+    "obj-inactive",
+    "obj-inactive",
+    "none",
+    "none",
+    "none",
+    "none",
+    "none",
+    "none",
+    "none",
+    "dir",
+    "obj-inactive",
+    "obj-inactive",
+    "none",
+    "none"
+  ],
+  "baselineMismatches": 5
+}

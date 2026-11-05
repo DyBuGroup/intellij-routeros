@@ -8,6 +8,7 @@ plugins {
     java
     alias(libs.plugins.kotlin)
     id("org.jetbrains.intellij.platform")
+    id("org.jetbrains.intellij.platform.grammarkit")
     alias(libs.plugins.changelog)
 }
 
@@ -98,10 +99,42 @@ changelog {
     repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
 }
 
+sourceSets {
+    main {
+        java {
+            srcDir(tasks.generateLexer)
+            srcDir(tasks.generateParser)
+        }
+    }
+}
+
 tasks {
+    generateLexer {
+        sourceFile = file("src/main/grammar/RouterOs.flex")
+    }
+
+    generateParser {
+        sourceFile = file("src/main/grammar/RouterOs.bnf")
+    }
+
     test {
         maxHeapSize = "1g"
         maxParallelForks = 1
+        providers.gradleProperty("ros.extraCorpus").orNull?.let { systemProperty("ros.extraCorpus", it) }
+    }
+
+    register<Test>("captureHighlightOracle") {
+        description = "Refreshes testData/oracle from a live router (needs ROS_URL, ROS_USER, ROS_PASSWORD)."
+        group = "verification"
+        val testTask = named<Test>("test").get()
+        testClassesDirs = testTask.testClassesDirs
+        classpath = testTask.classpath
+        jvmArgumentProviders.addAll(testTask.jvmArgumentProviders)
+        maxHeapSize = "1g"
+        systemProperty("ros.oracle.capture", "true")
+        filter.includeTestsMatching("dev.dybug.routeros.oracle.*")
+        outputs.upToDateWhen { false }
+        notCompatibleWithConfigurationCache("maintainer task that talks to a live router")
     }
 
     publishPlugin {

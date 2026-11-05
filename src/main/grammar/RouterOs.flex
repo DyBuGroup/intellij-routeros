@@ -1,0 +1,307 @@
+package dev.dybug.routeros.lexer;
+
+import com.intellij.lexer.FlexLexer;
+import com.intellij.psi.tree.IElementType;
+import com.intellij.psi.TokenType;
+
+import static dev.dybug.routeros.psi.RosTypes.*;
+
+%%
+
+%{
+  private int[] stack = new int[16];
+  private int depth = 0;
+
+  public _RouterOsLexer() {
+    this((java.io.Reader) null);
+  }
+
+  /** Clears the bracket/string state stack; called whenever lexing (re)starts. */
+  public void resetStack() {
+    depth = 0;
+  }
+
+  public boolean isStackEmpty() {
+    return depth == 0;
+  }
+
+  /** A cheap fingerprint of the state stack, used to encode it into the lexer state. */
+  public int stackHash() {
+    int h = depth;
+    for (int i = 0; i < depth; i++) {
+      h = h * 31 + stack[i];
+    }
+    return h;
+  }
+
+  private void push(int returnState) {
+    if (depth == stack.length) {
+      stack = java.util.Arrays.copyOf(stack, depth * 2);
+    }
+    stack[depth++] = returnState;
+  }
+
+  private void pop() {
+    yybegin(depth == 0 ? YYINITIAL : stack[--depth]);
+  }
+
+  private void enter(int returnState, int newState) {
+    push(returnState);
+    yybegin(newState);
+  }
+
+  /** True when the lexer is inside $(...) or $[...] interpolation of a string literal. */
+  private boolean inInterpolation() {
+    for (int i = 0; i < depth; i++) {
+      if (stack[i] == STRING) return true;
+    }
+    return false;
+  }
+
+  /** Do not swallow the '-' of a following "->" into a word. */
+  private void unglueArrow() {
+    if (yylength() > 1 && yycharat(yylength() - 1) == '-'
+        && zzMarkedPos < zzEndRead && zzBuffer.charAt(zzMarkedPos) == '>') {
+      yypushback(1);
+    }
+  }
+
+  private IElementType scriptCommand() {
+    String name = yytext().subSequence(1, yylength()).toString();
+    yybegin(SARGS);
+    switch (name) {
+      case "local": return CMD_LOCAL;
+      case "global": return CMD_GLOBAL;
+      case "set": return CMD_SET;
+      default: return SCRIPT_CMD;
+    }
+  }
+
+  private static final java.util.Set<String> CONTROL_ARGS = java.util.Set.of("do", "else", "on-error");
+  private static final java.util.Set<String> SCRIPT_CONTROL_ARGS = java.util.Set.of(
+      "do", "else", "on-error", "from", "to", "step", "in", "while", "command", "delay", "max",
+      "script", "file", "as-string");
+
+  private IElementType argName(boolean scriptCommand) {
+    String name = yytext().toString();
+    return (scriptCommand ? SCRIPT_CONTROL_ARGS : CONTROL_ARGS).contains(name) ? CONTROL_ARG : ARG_NAME;
+  }
+%}
+
+%public
+%class _RouterOsLexer
+%implements FlexLexer
+%function advance
+%type IElementType
+%unicode
+
+EOL = \r\n | \r | \n
+WS = [ \t\f]+
+CONT = \\ [ \t\f]* {EOL}
+COMMENT = "#" [^\r\n]*
+
+VAR_NAME = [A-Za-z0-9_]+
+CMD_NAME = [A-Za-z] [A-Za-z0-9\-]*
+
+PATH_WORD = [^ \t\f\r\n;=\[\](){}\"#$\\/<>]+
+NUMERIC_WORD = [0-9]+ ([.:,\-/] [^ \t\f\r\n;=\[\](){}\"#$\\<>]*)?
+ITEM_ID = \*[0-9A-Fa-f]+
+
+ARG_WORD = [^ \t\f\r\n;=\[\](){}\"#$\\<>] [^ \t\f\r\n;=\[\](){}\"\\<>]*
+VALUE_WORD = [^ \t\f\r\n;\[\](){}\"#$\\<>] [^ \t\f\r\n;\[\](){}\"\\<>]*
+WHERE_WORD = [^ \t\f\r\n;=!<>~&|()\[\]{}\"#$\\,]+
+
+DEC = [0-9]+
+HEX = 0x [0-9A-Fa-f]+
+IPV4 = [0-9]{1,3} (\. [0-9]{1,3}){3} (\/ [0-9]{1,2})?
+COLON_LITERAL = [0-9A-Fa-f]* ":" [0-9A-Fa-f:]* (\. [0-9]+)* (\/ [0-9]+)?
+TIME = ([0-9]+ ("w" | "d" | "h" | "m" | "s" | "ms" | "us" | "ns"))+
+EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
+
+%state PATH, ARGS, VALUE, SARGS, SVALUE, WHERE, EXPR, STRING, ESC_STRING, INTERP_OPEN
+
+%%
+
+// ---------------------------------------------------------------- shared rules for code states
+<YYINITIAL, PATH, ARGS, VALUE, SARGS, SVALUE, WHERE, EXPR> {
+  {CONT}                 { return TokenType.WHITE_SPACE; }
+  \\ \"                  { if (inInterpolation()) { enter(yystate(), ESC_STRING); return STRING_START; }
+                           return TokenType.BAD_CHARACTER; }
+  \"                     { enter(yystate() == YYINITIAL || yystate() == PATH ? ARGS : yystate(), STRING); return STRING_START; }
+  "$" {VAR_NAME}         { if (yystate() == YYINITIAL) yybegin(SARGS); else if (yystate() == PATH) yybegin(ARGS);
+                           return VARIABLE; }
+  "$" / \"               { if (yystate() == YYINITIAL) yybegin(SARGS); else if (yystate() == PATH) yybegin(ARGS);
+                           return DOLLAR; }
+  "]" | "}" | ")"        { IElementType t = yycharat(0) == ']' ? RBRACKET : yycharat(0) == '}' ? RBRACE : RPAREN;
+                           pop(); return t; }
+}
+
+<YYINITIAL, PATH, ARGS, VALUE, SARGS, SVALUE, WHERE> {
+  {WS}                   { if (yystate() == VALUE) yybegin(ARGS); else if (yystate() == SVALUE) yybegin(SARGS);
+                           return TokenType.WHITE_SPACE; }
+  {EOL}                  { yybegin(YYINITIAL); return NEWLINE; }
+  ";"                    { yybegin(YYINITIAL); return SEMICOLON; }
+  {COMMENT}              { return COMMENT; }
+}
+
+// ---------------------------------------------------------------- statement start
+<YYINITIAL> {
+  ":" {CMD_NAME}         { return scriptCommand(); }
+  "/"                    { yybegin(PATH); return SLASH; }
+  "{"                    { enter(YYINITIAL, YYINITIAL); return LBRACE; }
+  "["                    { enter(ARGS, YYINITIAL); return LBRACKET; }
+  "("                    { enter(ARGS, EXPR); return LPAREN; }
+  [^]                    { yypushback(1); yybegin(PATH); }
+}
+
+// ---------------------------------------------------------------- menu path and command word(s)
+<PATH> {
+  "/"                    { return SLASH; }
+  "where" / [ \t\f\r\n]  { yybegin(WHERE); return WHERE_KW; }
+  {ARG_WORD} / "="       { unglueArrow(); yybegin(ARGS); return argName(false); }
+  {NUMERIC_WORD}         { yybegin(ARGS); return WORD; }
+  {ITEM_ID}              { yybegin(ARGS); return WORD; }
+  "!" {ARG_WORD}         { yybegin(ARGS); return WORD; }
+  {PATH_WORD}            { return PATH_WORD; }
+  "{"                    { enter(ARGS, YYINITIAL); return LBRACE; }
+  "["                    { enter(ARGS, YYINITIAL); return LBRACKET; }
+  "("                    { enter(ARGS, EXPR); return LPAREN; }
+  "="                    { yybegin(VALUE); return EQ; }
+  "->"                   { yybegin(ARGS); return ARROW; }
+  "<"                    { yybegin(ARGS); return LT; }
+  ">"                    { yybegin(ARGS); return GT; }
+}
+
+// ---------------------------------------------------------------- arguments of menu commands and script commands
+<ARGS> {
+  "where" / [ \t\f\r\n]  { yybegin(WHERE); return WHERE_KW; }
+  {ARG_WORD} / "="       { unglueArrow(); return argName(false); }
+  "="                    { yybegin(VALUE); return EQ; }
+}
+
+<SARGS> {
+  {ARG_WORD} / "="       { unglueArrow(); return argName(true); }
+  "="                    { yybegin(SVALUE); return EQ; }
+}
+
+<ARGS, SARGS> {
+  "->"                   { return ARROW; }
+  "{"                    { enter(yystate(), YYINITIAL); return LBRACE; }
+  "["                    { enter(yystate(), YYINITIAL); return LBRACKET; }
+  "("                    { enter(yystate(), EXPR); return LPAREN; }
+  "<"                    { return LT; }
+  ">"                    { return GT; }
+  {ARG_WORD}             { unglueArrow(); return WORD; }
+}
+
+<VALUE, SVALUE> {
+  "->"                   { return ARROW; }
+  "{"                    { enter(yystate(), YYINITIAL); return LBRACE; }
+  "["                    { enter(yystate(), YYINITIAL); return LBRACKET; }
+  "("                    { enter(yystate(), EXPR); return LPAREN; }
+  "<"                    { return LT; }
+  ">"                    { return GT; }
+  {VALUE_WORD}           { unglueArrow(); return WORD; }
+}
+
+// ---------------------------------------------------------------- where clause (print where ..., find where ...)
+<WHERE> {
+  "&&"                   { return ANDAND; }
+  "||"                   { return OROR; }
+  "!="                   { return NEQ; }
+  "<="                   { return LE; }
+  ">="                   { return GE; }
+  "="                    { return EQ; }
+  "<"                    { return LT; }
+  ">"                    { return GT; }
+  "!"                    { return NOT; }
+  "~"                    { return TILDE; }
+  ","                    { return COMMA; }
+  "&"                    { return BITAND; }
+  "|"                    { return BITOR; }
+  "->"                   { return ARROW; }
+  "and"                  { return AND_KW; }
+  "or"                   { return OR_KW; }
+  "in"                   { return IN_KW; }
+  "not"                  { return NOT_KW; }
+  "{"                    { enter(WHERE, YYINITIAL); return LBRACE; }
+  "["                    { enter(WHERE, YYINITIAL); return LBRACKET; }
+  "("                    { enter(WHERE, EXPR); return LPAREN; }
+  {WHERE_WORD}           { unglueArrow(); return WORD; }
+}
+
+// ---------------------------------------------------------------- expressions inside ( ... )
+<EXPR> {
+  ({WS} | {EOL})+        { return TokenType.WHITE_SPACE; }
+  {COMMENT}              { return COMMENT; }
+  "("                    { enter(EXPR, EXPR); return LPAREN; }
+  "["                    { enter(EXPR, YYINITIAL); return LBRACKET; }
+  "{"                    { enter(EXPR, YYINITIAL); return LBRACE; }
+  ";"                    { return SEMICOLON; }
+
+  {HEX}                  { return NUMBER; }
+  {DEC}                  { return NUMBER; }
+  {IPV4}                 { return LITERAL; }
+  {COLON_LITERAL}        { return LITERAL; }
+  {TIME}                 { return LITERAL; }
+  "true" | "false" | "yes" | "no" { return BOOLEAN; }
+  "and"                  { return AND_KW; }
+  "or"                   { return OR_KW; }
+  "in"                   { return IN_KW; }
+  "not"                  { return NOT_KW; }
+  {EXPR_WORD}            { return WORD; }
+
+  "->"                   { return ARROW; }
+  "&&"                   { return ANDAND; }
+  "||"                   { return OROR; }
+  "!="                   { return NEQ; }
+  "<="                   { return LE; }
+  ">="                   { return GE; }
+  "<<"                   { return SHL; }
+  ">>"                   { return SHR; }
+  "="                    { return EQ; }
+  "<"                    { return LT; }
+  ">"                    { return GT; }
+  "!"                    { return NOT; }
+  "+"                    { return PLUS; }
+  "-"                    { return MINUS; }
+  "*"                    { return MUL; }
+  "/"                    { return DIV; }
+  "%"                    { return MOD; }
+  "&"                    { return BITAND; }
+  "|"                    { return BITOR; }
+  "^"                    { return XOR; }
+  "~"                    { return TILDE; }
+  "."                    { return DOT; }
+  ","                    { return COMMA; }
+}
+
+// ---------------------------------------------------------------- string literals with interpolation
+<STRING> {
+  \"                     { pop(); return STRING_END; }
+  \\ {EOL}               { return STRING_ESCAPE; }
+  \\ [\"\\nrt$_abfv]     { return STRING_ESCAPE; }
+  \\ [0-9A-F][0-9A-F]    { return STRING_ESCAPE; }
+  \\ [^]                 { return STRING_INVALID_ESCAPE; }
+  \\                     { return STRING_INVALID_ESCAPE; }
+  "$" {VAR_NAME}         { return VARIABLE; }
+  "$" / [\(\[]           { yybegin(INTERP_OPEN); return DOLLAR; }
+  "$"                    { return STRING_TEXT; }
+  [^\"\\$]+              { return STRING_TEXT; }
+}
+
+<INTERP_OPEN> {
+  "("                    { enter(STRING, EXPR); return LPAREN; }
+  "["                    { enter(STRING, YYINITIAL); return LBRACKET; }
+  [^]                    { yypushback(1); yybegin(STRING); }
+}
+
+// \"...\" nested inside $( ... ) / $[ ... ] interpolation
+<ESC_STRING> {
+  \\ \"                  { pop(); return STRING_END; }
+  \\ [^\"]               { return STRING_ESCAPE; }
+  \\                     { return STRING_INVALID_ESCAPE; }
+  [^\\]+                 { return STRING_TEXT; }
+}
+
+[^]                      { return TokenType.BAD_CHARACTER; }

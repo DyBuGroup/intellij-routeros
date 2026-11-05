@@ -12,5 +12,15 @@
               fieldName="INSTANCE"
               language="RouterOS"
               extensions="rsc"/>
+    <lang.parserDefinition language="RouterOS"
+                           implementationClass="dev.dybug.routeros.parser.RosParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="RouterOS"
+                                   implementationClass="dev.dybug.routeros.highlighting.RosSyntaxHighlighterFactory"/>
+    <colorSettingsPage implementation="dev.dybug.routeros.highlighting.RosColorSettingsPage"/>
+    <lang.braceMatcher language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosBraceMatcher"/>
+    <lang.commenter language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosCommenter"/>
+    <lang.quoteHandler language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosQuoteHandler"/>
+    <indexPatternBuilder implementation="dev.dybug.routeros.editor.RosIndexPatternBuilder"/>
+    <todoIndexer filetype="RouterOS Script" implementationClass="dev.dybug.routeros.editor.RosTodoIndexer"/>
   </extensions>
 </idea-plugin>

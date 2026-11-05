@@ -1,0 +1,6 @@
+RosTokenType.path word ('..')
+WHITE_SPACE (' ')
+RosTokenType.path word ('print')
+RosTokenType.newline ('\n')
+RosTokenType./ ('/')
+RosTokenType.path word ('..')

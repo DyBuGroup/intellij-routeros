@@ -1,0 +1,86 @@
+{
+  parserClass="dev.dybug.routeros.parser.RosParser"
+  parserUtilClass="dev.dybug.routeros.parser.RosParserUtil"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="Ros"
+  psiImplClassSuffix="Impl"
+  psiPackage="dev.dybug.routeros.psi"
+  psiImplPackage="dev.dybug.routeros.psi.impl"
+
+  elementTypeHolderClass="dev.dybug.routeros.psi.RosTypes"
+  elementTypeClass="dev.dybug.routeros.psi.RosElementType"
+  tokenTypeClass="dev.dybug.routeros.psi.RosTokenType"
+
+  tokens=[
+    NEWLINE='newline'
+    COMMENT='comment'
+    SEMICOLON=';'
+    LBRACE='{'
+    RBRACE='}'
+    LBRACKET='['
+    RBRACKET=']'
+    LPAREN='('
+    RPAREN=')'
+    SLASH='/'
+    EQ='='
+    DOLLAR='$'
+    ARROW='->'
+    COMMA=','
+
+    PATH_WORD='path word'
+    WORD='word'
+    ARG_NAME='argument name'
+    CONTROL_ARG='control argument'
+    VARIABLE='variable'
+    SCRIPT_CMD='script command'
+    CMD_LOCAL=':local'
+    CMD_GLOBAL=':global'
+    CMD_SET=':set'
+    WHERE_KW='where'
+
+    STRING_START='string start'
+    STRING_END='string end'
+    STRING_TEXT='string text'
+    STRING_ESCAPE='string escape'
+    STRING_INVALID_ESCAPE='invalid escape'
+
+    NUMBER='number'
+    LITERAL='literal'
+    BOOLEAN='boolean'
+
+    PLUS='+'
+    MINUS='-'
+    MUL='*'
+    DIV='div'
+    MOD='%'
+    NEQ='!='
+    LT='<'
+    GT='>'
+    LE='<='
+    GE='>='
+    NOT='!'
+    ANDAND='&&'
+    OROR='||'
+    AND_KW='and'
+    OR_KW='or'
+    IN_KW='in'
+    NOT_KW='not'
+    BITAND='&'
+    BITOR='|'
+    XOR='^'
+    TILDE='~'
+    SHL='<<'
+    SHR='>>'
+    DOT='.'
+  ]
+}
+
+file ::= file_item*
+
+private file_item ::= NEWLINE | COMMENT | SEMICOLON | LBRACE | RBRACE | LBRACKET | RBRACKET | LPAREN | RPAREN
+  | SLASH | EQ | DOLLAR | ARROW | COMMA | PATH_WORD | WORD | ARG_NAME | CONTROL_ARG | VARIABLE | SCRIPT_CMD
+  | CMD_LOCAL | CMD_GLOBAL | CMD_SET | WHERE_KW | STRING_START | STRING_END | STRING_TEXT | STRING_ESCAPE
+  | STRING_INVALID_ESCAPE | NUMBER | LITERAL | BOOLEAN | PLUS | MINUS | MUL | DIV | MOD | NEQ | LT | GT | LE | GE
+  | NOT | ANDAND | OROR | AND_KW | OR_KW | IN_KW | NOT_KW | BITAND | BITOR | XOR | TILDE | SHL | SHR | DOT
