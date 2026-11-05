@@ -12,6 +12,8 @@ The plugin is a native IntelliJ Platform language plugin written in Kotlin. The 
 | `psi` | Token/element types, `RosFile`, token sets |
 | `highlighting` | Syntax highlighter, colour settings page, attribute keys |
 | `editor` | Brace matcher, commenter, quote handler, TODO support |
+| `structure` | Folding, structure view, breadcrumbs |
+| `injection` | RouterOS injection into script-valued strings, string escaper |
 
 All user-visible strings live in `src/main/resources/messages/RosBundle.properties`.
 
@@ -39,11 +41,34 @@ against the schema, never in the lexer.
 stack, so the editor restarts incremental lexing only at such points. Other tokens report a
 fingerprint of the state and stack.
 
+## Parser and PSI
+
+`src/main/grammar/RouterOs.bnf` is deliberately permissive: a statement is a script command
+(`:local`, `:global`, `:set`, other `:cmd`), a function call (`$f …`) or a command
+(`path argument*`, or a bare argument list such as an array element). `{ … }` is always a
+`BLOCK`; whether it is an array literal is decided semantically, not by the parser.
+Statements recover at newline, `;` and closing brackets, so one broken line yields one error.
+Unmatched closing brackets become `STRAY_TOKEN` nodes.
+
+`RosPsiUtil` holds the semantic helpers: argument access, declared names, and menu context.
+A bare absolute path at top level (`/ip address`) is a *menu context line*; relative commands
+after it resolve against it (`RosPsiUtil.resolvedPath`). Context lines are cached per file.
+
+Strings are `PsiLanguageInjectionHost`s. `RosScriptInjector` injects RouterOS into
+script-valued properties when the string has no interpolation; `RosStringEscaper` decodes
+escapes so the injected fragment is what the router would store.
+
 ## Testing
 
 - `src/test/testData/lexer/*.rsc` + `.txt` — golden token dumps (`RosLexerTest`).
 - `RosLexerRobustnessTest` — CRLF/CR, restartability, no bad characters on test data,
   termination on unterminated constructs. `-Pros.extraCorpus=/dir` sweeps private files.
+- `src/test/testData/parser/` — golden PSI trees (`RosParserTest`).
+- `src/test/testData/corpus/` — must parse without errors (`RosCorpusParsingTest`);
+  `allow-errors.txt` lists intentionally broken files. `tikoci/` is MIT-licensed test data from
+  tikoci/lsp-routeros-ts (see `LICENSE-tikoci`). Use `-Pros.extraCorpus=/dir` to sweep
+  non-redistributable files; results go to `build/reports/extra-corpus*.txt`.
+- `RosPerformanceTest` — a 1 MB synthetic export must parse within the budget.
 - `src/test/testData/oracle/*.json` — RouterOS's own highlighter output for the lexer test
   files. `RosHighlightOracleTest` compares coarse token classes and fails only when a file's
   mismatch count grows beyond its recorded baseline. Refresh with

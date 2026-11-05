@@ -20,6 +20,11 @@
     <lang.braceMatcher language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosBraceMatcher"/>
     <lang.commenter language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosCommenter"/>
     <lang.quoteHandler language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosQuoteHandler"/>
+    <lang.foldingBuilder language="RouterOS" implementationClass="dev.dybug.routeros.structure.RosFoldingBuilder"/>
+    <lang.psiStructureViewFactory language="RouterOS"
+                                  implementationClass="dev.dybug.routeros.structure.RosStructureViewFactory"/>
+    <breadcrumbsInfoProvider implementation="dev.dybug.routeros.structure.RosBreadcrumbsProvider"/>
+    <multiHostInjector implementation="dev.dybug.routeros.injection.RosScriptInjector"/>
     <indexPatternBuilder implementation="dev.dybug.routeros.editor.RosIndexPatternBuilder"/>
     <todoIndexer filetype="RouterOS Script" implementationClass="dev.dybug.routeros.editor.RosTodoIndexer"/>
   </extensions>

@@ -150,7 +150,11 @@ bracket_command ::= LBRACKET inner_item* RBRACKET {pin=1}
 private inner_item ::= separator | statement_item | inner_stray
 private inner_stray ::= RPAREN
 
-string ::= STRING_START string_part* STRING_END {pin=1}
+string ::= STRING_START string_part* STRING_END {
+  pin=1
+  mixin="dev.dybug.routeros.psi.impl.RosStringMixin"
+  implements="com.intellij.psi.PsiLanguageInjectionHost"
+}
 private string_part ::= STRING_TEXT | STRING_ESCAPE | STRING_INVALID_ESCAPE | variable | interpolation
 interpolation ::= DOLLAR (paren_expr | bracket_command) {pin=1}
 

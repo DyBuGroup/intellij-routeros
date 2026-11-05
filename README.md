@@ -12,6 +12,9 @@ files (`.rsc`).
   properties, values, script commands, variables, string escapes and interpolation
 - Configurable colours (*Settings → Editor → Color Scheme → RouterOS Script*)
 - Brace matching, `#` line comments (Ctrl+/), quote handling, TODO highlighting
+- Structure view with export sections, functions and globals; breadcrumbs; code folding
+- RouterOS highlighting inside script strings (`/system script add source="…"`, scheduler
+  `on-event`, netwatch/DHCP/PPP script properties)
 - Works fully offline; no router required for editing features
 <!-- Plugin description end -->
 
