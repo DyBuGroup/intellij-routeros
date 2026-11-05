@@ -1,0 +1,587 @@
+{
+  "comment": "Hand-maintained; seeded from https://manual.mikrotik.com/docs/developer-guides/scripting (RouterOS 7.26).",
+  "scriptCommands": {
+    "beep": {
+      "syntax": ":beep frequency=[num] length=[num]",
+      "doc": "Beep the built-in speaker.",
+      "params": [
+        {
+          "n": "frequency"
+        },
+        {
+          "n": "length"
+        }
+      ]
+    },
+    "blink": {
+      "syntax": ":blink",
+      "doc": "Blink the LED.",
+      "params": []
+    },
+    "convert": {
+      "syntax": ":convert from=[arg] to=[arg] transform=[arg]",
+      "doc": "Converts specified value from one format to another. By default uses an automatically parsed value, if the `from` format is not specified (for example, \"001\" becomes \"1\", \"10.1\" becomes \"10.0.0.1\", etc.). from - Specifies the format of the value: *base32, base64, bit-array-lsb, bit-array-msb, byte-array, hex, num, raw, url*. to - Specifies the format of the output value: *base32, base64, bit-array-lsb, bit-array-msb, byte-array, hex, num, raw, url*. transform - Specifies how to transform values: *lc (transforms value to be in lowercases), uc (uppercases), lcfirst (first value to lowercase), ucfirst (first value to uppercase), crlf, ed25519-private-to-x25519-private, none, rot 13, x25519-private-to-x25519-public, ed25519-private-to-ed25519-public, ed25519-public-to-x25519-public, md5, reverse (reverses text), sha512.*",
+      "params": [
+        {
+          "n": "from",
+          "values": [
+            "base32",
+            "base64",
+            "bit-array-lsb",
+            "bit-array-msb",
+            "byte-array",
+            "hex",
+            "num",
+            "raw",
+            "url"
+          ]
+        },
+        {
+          "n": "to",
+          "values": [
+            "base32",
+            "base64",
+            "bit-array-lsb",
+            "bit-array-msb",
+            "byte-array",
+            "hex",
+            "num",
+            "raw",
+            "url"
+          ]
+        },
+        {
+          "n": "transform"
+        }
+      ]
+    },
+    "delay": {
+      "syntax": ":delay ",
+      "doc": "Do nothing for a given period of time.",
+      "params": []
+    },
+    "deserialize": {
+      "syntax": ":deserialize [] from=[arg]",
+      "doc": "Deserialize specified value/array from JSON or dsv (delimiter separated values) format. from specifies the format - *json, dsv* delimiter sets the \"separator\". options specifies additional options*:* dsv.plain - deserializes every line as an array (input does not have a header or column names);dsv.array - expects a header (column names) and will return an array of dictionaries, where values are mapped to column names provided in the header.json.no-string-conversion - prevents implicit conversions from json string type to console values (number, ip, etc.).",
+      "params": [
+        {
+          "n": "value"
+        },
+        {
+          "n": "from",
+          "values": [
+            "json",
+            "dsv"
+          ]
+        },
+        {
+          "n": "delimiter"
+        },
+        {
+          "n": "options"
+        }
+      ]
+    },
+    "do": {
+      "syntax": ":do { <commands> } while=( <conditions> ) | :do { <commands> } on-error={ <commands> }",
+      "doc": "Execute commands; repeat while a condition holds (while=), or catch errors (on-error=).",
+      "params": [
+        {
+          "n": "while"
+        },
+        {
+          "n": "on-error",
+          "block": true
+        }
+      ]
+    },
+    "environment": {
+      "syntax": ":environment print ",
+      "doc": "Print initialized variable information.",
+      "params": []
+    },
+    "error": {
+      "syntax": ":error ",
+      "doc": "Generate console error and stop executing the script.",
+      "params": []
+    },
+    "execute": {
+      "syntax": ":execute ",
+      "doc": "Execute the script in the background. The result can be written in the file by setting a `file` parameter or printed to the CLI by setting `as-string`. When using the `as-string` parameter executed script is blocked (not executed in the background). Executed scripts cannot be larger than 64 kB.",
+      "params": [
+        {
+          "n": "script",
+          "block": true
+        },
+        {
+          "n": "file"
+        },
+        {
+          "n": "as-string"
+        }
+      ]
+    },
+    "find": {
+      "syntax": ":find ",
+      "doc": "Return position of a substring or array element.",
+      "params": []
+    },
+    "for": {
+      "syntax": ":for <var> from=<int> to=<int> step=<int> do={ <commands> }",
+      "doc": "Execute commands over a given number of iterations.",
+      "params": [
+        {
+          "n": "from"
+        },
+        {
+          "n": "to"
+        },
+        {
+          "n": "step"
+        },
+        {
+          "n": "do",
+          "block": true
+        }
+      ]
+    },
+    "foreach": {
+      "syntax": ":foreach <var> in=<array> do={ <commands> }",
+      "doc": "Execute commands for each element in a list. With two names (:foreach k,v in=...) iterate keys and values.",
+      "params": [
+        {
+          "n": "in"
+        },
+        {
+          "n": "do",
+          "block": true
+        }
+      ]
+    },
+    "global": {
+      "syntax": ":global []",
+      "doc": "Define a global variable.",
+      "params": []
+    },
+    "grep": {
+      "syntax": ":grep script=[str] pattern=[expression] after=[num] before=[num] filename=[str]",
+      "doc": "Execute provided `script` in the terminal and print the lines matched by a given `pattern`. Parameters `after` and `before` sets how many lines to print additionaly before and after the matched line. Results can be directly saved into a file with `filename` parameter.",
+      "params": [
+        {
+          "n": "script"
+        },
+        {
+          "n": "pattern"
+        },
+        {
+          "n": "after"
+        },
+        {
+          "n": "before"
+        },
+        {
+          "n": "filename"
+        }
+      ]
+    },
+    "if": {
+      "syntax": ":if (<condition>) do={<commands>} else={<commands>}",
+      "doc": "If a given condition is true then execute commands in the do block, otherwise execute commands in the else block (if specified).",
+      "params": [
+        {
+          "n": "do",
+          "block": true
+        },
+        {
+          "n": "else",
+          "block": true
+        }
+      ]
+    },
+    "jobname": {
+      "syntax": ":jobname",
+      "doc": "Return current script name.",
+      "params": []
+    },
+    "len": {
+      "syntax": ":len ",
+      "doc": "Return the string length or the array element count.",
+      "params": []
+    },
+    "local": {
+      "syntax": ":local []",
+      "doc": "Define the local variable.",
+      "params": []
+    },
+    "log": {
+      "syntax": ":log ",
+      "doc": "Write a message to the system log. Available topics are `debug`, `error`, `info` and `warning`.",
+      "params": [],
+      "positionalValues": [
+        "debug",
+        "error",
+        "info",
+        "warning"
+      ]
+    },
+    "nothing": {
+      "syntax": ":nothing",
+      "doc": "Return a value of nothing (nil). `:put [:nothing]` prints an empty line. In comparisons a nil value sorts below zero: `[:nothing] = 0` and `[:nothing] > 0` return `false`, while `[:nothing] < 0` returns `true`.",
+      "params": []
+    },
+    "onerror": {
+      "syntax": ":onerror in={} do={}",
+      "doc": "Catch errors and get error details. The do={...} block is executed, when in={...} block has an error, and error details are written in `` variable. Parameter order is important. The `error` parameter must be set before `do` block, otherwise `do` block will not see the local variable. `:onerror` will return `false` (if there is no error) and `true` (if there is an error) unless otherwise specified (with commands such as `:return` or `:error`), so it can be used in :if condition statement scripts.",
+      "params": [
+        {
+          "n": "in",
+          "block": true
+        },
+        {
+          "n": "do",
+          "block": true
+        }
+      ]
+    },
+    "parse": {
+      "syntax": ":parse ",
+      "doc": "Parse the string and return parsed console commands. Can be used as a function.",
+      "params": []
+    },
+    "pick": {
+      "syntax": ":pick []",
+      "doc": "Return range of elements or substring. If the count is not specified, it will return only one element from an array. `var` - value to pick elements from.`start` - element to start picking from (the first element index is 0).`end` - terminating index (element at this index is not included).",
+      "params": []
+    },
+    "put": {
+      "syntax": ":put ",
+      "doc": "Print the supplied argument to the terminal.",
+      "params": []
+    },
+    "range": {
+      "syntax": ":range ",
+      "doc": "Creates an array from the specified range.",
+      "params": []
+    },
+    "resolve": {
+      "syntax": ":resolve [][][][]",
+      "doc": "Return the IP address of the given DNS name `domain-name` - DNS name that needs to be resolved.`server` - Specific server that will be used to resolve DNS name (returned results will not be cached).`server-port` - Server port to connect to.`type` - any/any6/ipv4/ipv6:`any` - Try to resolve ipv4, on failure try ipv6.`any6` - Try to resolve ipv6, on failure try ipv4.`ipv4` - Try to resolve only ipv4.`ipv6` - Try to resolve only ipv6.",
+      "params": [
+        {
+          "n": "domain-name"
+        },
+        {
+          "n": "server"
+        },
+        {
+          "n": "server-port"
+        },
+        {
+          "n": "type",
+          "values": [
+            "any",
+            "any6",
+            "ipv4",
+            "ipv6"
+          ]
+        }
+      ]
+    },
+    "retry": {
+      "syntax": ":onerror e {:retry command= delay=[num] max=[num]} do={}",
+      "doc": "Try to execute the given command `max` amount of times with a given `delay` in seconds between tries. On failure, execute the command in the `do={}` block.",
+      "params": [
+        {
+          "n": "command",
+          "block": true
+        },
+        {
+          "n": "delay"
+        },
+        {
+          "n": "max"
+        }
+      ]
+    },
+    "return": {
+      "syntax": ":return <value>",
+      "doc": "Return a value from a function and stop executing it.",
+      "params": []
+    },
+    "rndnum": {
+      "syntax": ":rndnum from=[num] to=[num]",
+      "doc": "Random number generator.",
+      "params": [
+        {
+          "n": "from"
+        },
+        {
+          "n": "to"
+        }
+      ]
+    },
+    "rndstr": {
+      "syntax": ":rndstr from=[str] length=[num]",
+      "doc": "Random string generator. from specifies characters to construct the string from and defaults to all ASCII letters and numerals. length specifies the length of the string to create and defaults to 16.",
+      "params": [
+        {
+          "n": "from"
+        },
+        {
+          "n": "length"
+        }
+      ]
+    },
+    "serialize": {
+      "syntax": ":serialize [] to=[arg]",
+      "doc": "Serialize specified value/array to JSON or dsv (delimiter separated values) format. value specifies which values to process. to specifies the format - *json, dsv* delimiter sets the \"separator\". order specifies the order for variables. options specifies additional options*:* json.pretty - makes the JSON output more visually appealing;json.no-string-conversion - prevents implicit conversions from console string type to json number type;dsv.wrap-strings - wraps string values inside quotation marks;dsv.ignore-size - if array values have different sizes, e.g. a=(1,2);b=(3,4);c=(5,6,7), this option will work around array size mismatch error and set \"empty\" values in those slots.dsv.remap - merges array of dictionaries into a single dictionary (useful when working with \"print as-value\") file-name enables the option to generate command's output into a file (available for download in the \"/files\" section).",
+      "params": [
+        {
+          "n": "value"
+        },
+        {
+          "n": "to",
+          "values": [
+            "json",
+            "dsv"
+          ]
+        },
+        {
+          "n": "delimiter"
+        },
+        {
+          "n": "order"
+        },
+        {
+          "n": "options"
+        },
+        {
+          "n": "file-name"
+        }
+      ]
+    },
+    "set": {
+      "syntax": ":set []",
+      "doc": "Assign value to a declared variable.",
+      "params": []
+    },
+    "terminal": {
+      "syntax": ":terminal ...",
+      "doc": "Terminal related commands.",
+      "params": []
+    },
+    "time": {
+      "syntax": ":time ",
+      "doc": "Return interval of time needed to execute the provided expression.",
+      "params": []
+    },
+    "timestamp": {
+      "syntax": ":timestamp [use-tz]",
+      "doc": "Returns the time since `epoch`, where `epoch` is January 1, 1970 (Thursday), not counting leap seconds. The time is returned in UTC by default. Use the `use-tz` parameter to return the timestamp adjusted for the configured time zone on the router.",
+      "params": [
+        {
+          "n": "use-tz"
+        }
+      ]
+    },
+    "toarray": {
+      "syntax": ":toarray ",
+      "doc": "Convert a variable to an array.",
+      "params": []
+    },
+    "tobool": {
+      "syntax": ":tobool ",
+      "doc": "Convert a variable to a boolean.",
+      "params": []
+    },
+    "tocrlf": {
+      "syntax": ":tocrlf ",
+      "doc": "Converts line endings to CRLFs.",
+      "params": []
+    },
+    "toid": {
+      "syntax": ":toid ",
+      "doc": "Convert a variable to internal ID.",
+      "params": []
+    },
+    "toip": {
+      "syntax": ":toip ",
+      "doc": "Convert a variable to an IP address.",
+      "params": []
+    },
+    "toip6": {
+      "syntax": ":toip6 ",
+      "doc": "Convert a variable to an IPv6 address.",
+      "params": []
+    },
+    "tolf": {
+      "syntax": ":tolf ",
+      "doc": "Converts line endings to LFs.",
+      "params": []
+    },
+    "tonsec": {
+      "syntax": ":tonsec ",
+      "doc": "Convert a time to a nanoseconds.",
+      "params": [
+        {
+          "n": "value"
+        }
+      ]
+    },
+    "tonum": {
+      "syntax": ":tonum ",
+      "doc": "Convert a variable to an integer.",
+      "params": []
+    },
+    "tostr": {
+      "syntax": ":tostr ",
+      "doc": "Convert a variable to a string.",
+      "params": []
+    },
+    "totime": {
+      "syntax": ":totime ",
+      "doc": "Convert a variable to time.",
+      "params": []
+    },
+    "typeof": {
+      "syntax": ":typeof ",
+      "doc": "Return data type of the given variable.",
+      "params": []
+    },
+    "while": {
+      "syntax": ":while ( <conditions> ) do={ <commands> }",
+      "doc": "Execute commands until a given condition is met.",
+      "params": [
+        {
+          "n": "do",
+          "block": true
+        }
+      ]
+    }
+  },
+  "listCommands": [
+    "add",
+    "comment",
+    "disable",
+    "edit",
+    "enable",
+    "export",
+    "find",
+    "get",
+    "move",
+    "print",
+    "remove",
+    "reset",
+    "set",
+    "unset"
+  ],
+  "settingsCommands": [
+    "edit",
+    "export",
+    "get",
+    "print",
+    "reset",
+    "set",
+    "unset"
+  ],
+  "commandDocs": {
+    "add": {
+      "syntax": "add =..=",
+      "doc": "Add new item. This command usually has all the same arguments as set, except the item number argument. It adds a new item with the values you have specified, usually at the end of the item list, in places where the order of items is relevant. There are some required properties that you have to supply, such as the interface for a new address, while other properties are set to defaults unless you explicitly specify them. Returns the internal number of the item it has added.Common parameters:*copy-from* - Copies an existing item. It takes the default values of a new item's properties from another item. If you do not want to make an exact copy, you can specify new values for some properties. When copying items that have names, you will usually have to give a new name to a copy.*place-before* - Places a new item before an existing item with a specified position. Thus, you do not need to use the move command after adding an item to the list.*disabled* - Controls the disabled/enabled state of the newly added item(-s).*comment* - Holds the description of a newly created item."
+    },
+    "remove": {
+      "syntax": "remove ",
+      "doc": "Remove selected item."
+    },
+    "enable": {
+      "syntax": "enable ",
+      "doc": "Enable selected item."
+    },
+    "disable": {
+      "syntax": "disable ",
+      "doc": "Disable selected item."
+    },
+    "set": {
+      "syntax": "set =..=",
+      "doc": "Change selected items parameter, more than one parameter can be specified at the time. The parameter can be unset by specifying '!' before the parameter. Example: `/ip firewall filter add chain=blah action=accept protocol=tcp port=123 nth=4,2 print set 0 !port chain=blah2 !nth protocol=udp`"
+    },
+    "get": {
+      "syntax": "get =",
+      "doc": "Get the selected item's parameter value. Does not display it in the terminal by default. If used in combination with the :put command, it displays the retrieved value in the terminal, for example: `:put [/system/resource/get version]` will show the version of RouterOS installed on the device."
+    },
+    "print": {
+      "syntax": "print =[]",
+      "doc": "Print menu items. Output depends on the print parameters specified. Shows all information accessible from a particular command level. Thus, `/system/clock/print` shows the system date and time, `/ip/route/print` shows all routes, etc. If there's a list of items in the current level and they are not read-only, the print command also assigns numbers used by all commands that operate with items in this list."
+    },
+    "export": {
+      "syntax": "export [file=]",
+      "doc": "Export configuration from the current menu and its sub-menus (if present). If the `file` parameter is specified, then output will be written to the file with the extension '.rsc', otherwise the output will be printed to the terminal. Exported commands can be imported by import command."
+    },
+    "edit": {
+      "syntax": "edit ",
+      "doc": "Edit selected items property in the built-in text editor. Can be used to edit values of properties that contain a large amount of text, such as scripts, but it works with all editable properties. Depending on the capabilities of the terminal, either a fullscreen editor or a single-line editor is launched. The edit field for console scripts is limited to 30 thousand characters."
+    },
+    "find": {
+      "syntax": "find ",
+      "doc": "Returns a list of internal numbers for items that are matched by a given expression. Has the same arguments as set, plus the flag arguments like *disabled* or *active* that take values *yes* or *no* depending on the value of the respective flag. To see all flags and their names, look at the top of the print command's output."
+    },
+    "move": {
+      "syntax": "move []",
+      "doc": "Changes the order of items in the list. The first argument specifies the item(-s) being moved. The second argument specifies the item before which to place all items being moved (placed at the end of the list if the second argument is omitted)."
+    },
+    "reset": {
+      "syntax": "reset [=]",
+      "doc": "Resets parameters to default values. You can also include parameters with arguments in the same command, allowing you to reset and configure settings at the same time."
+    },
+    "comment": {
+      "syntax": "comment ",
+      "doc": "Allows you to comment the selected item."
+    }
+  },
+  "printParameters": {
+    "append": "",
+    "as-value": "Print output as an array of parameters and its values.",
+    "brief": "Brief output is typically is minimalist and is represented as a table of items with most commonly needed parameters.",
+    "detail": "Print detailed description, the output is not as readable as brief output but may be useful to view all parameters.",
+    "count-only": "Print only count of items in current menu.",
+    "file": "Write output to a file.",
+    "follow": "Print all current entries and track new entries until ctrl-c is pressed. Could be used when viewing, for example, log entries.",
+    "follow-only": "Print and track only new entries until ctrl-c is pressed. Could be used when, for example, trying to see new log entries.",
+    "from": "Print parameters only from a specified item.",
+    "interval": "Continuously print output in a selected time interval, useful to track down changes where `follow` is not acceptable",
+    "terse": "Show details in a compact and machine-friendly format.",
+    "value-list": "Data is displayed in a table, where parameters are split by lines and available items are split by columns (can be used for parsing purposes).",
+    "order-by": "Sort output by one or more properties. Prefix the property name with `-` for descending order. Up to three sorting fields can be specified.",
+    "without-paging": "If the output does not fit in the console screen then print all information in a single piece without stops.",
+    "where": "Expressions followed by `where` parameters can be used to filter outmatched entries.",
+    "about": "Returns entries that have the `about` parameter, such as \"managed by CAPsMAN \" information or warnings",
+    "!comments": "Print the entries without their comment banners; the entries themselves are still shown."
+  },
+  "entryProperties": [
+    {
+      "n": "comment",
+      "t": "string",
+      "d": "Short description of the item"
+    },
+    {
+      "n": "disabled",
+      "t": "bool",
+      "d": "Defines whether the item is ignored or used"
+    },
+    {
+      "n": "copy-from",
+      "t": "enum",
+      "d": "Copies an existing item: takes the default values of the new item from another item (add only)"
+    },
+    {
+      "n": "place-before",
+      "t": "enum",
+      "d": "Places the new item before an existing item with the specified position (add only)"
+    }
+  ],
+  "keywords": [
+    "and",
+    "or",
+    "in"
+  ]
+}
