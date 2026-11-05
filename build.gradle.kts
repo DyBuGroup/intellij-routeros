@@ -103,6 +103,16 @@ tasks {
         maxHeapSize = "1g"
         maxParallelForks = 1
     }
+
+    publishPlugin {
+        val signingConfigured = providers.environmentVariable("CERTIFICATE_CHAIN").isPresent &&
+            providers.environmentVariable("PRIVATE_KEY").isPresent
+        doFirst {
+            if (!signingConfigured) {
+                throw GradleException("Refusing to publish an unsigned plugin: CERTIFICATE_CHAIN and PRIVATE_KEY must be set")
+            }
+        }
+    }
 }
 
 intellijPlatformTesting {
