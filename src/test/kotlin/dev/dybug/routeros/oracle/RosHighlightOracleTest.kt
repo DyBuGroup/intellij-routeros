@@ -89,7 +89,7 @@ class RosHighlightOracleTest : UsefulTestCase() {
 
     private fun ourClass(type: IElementType, first: Boolean): Coarse = when {
         type == RosTypes.COMMENT -> Coarse.COMMENT
-        type == RosTypes.VARIABLE -> if (first) Coarse.PUNCT else Coarse.VARIABLE
+        type == RosTypes.DOLLAR_NAME -> if (first) Coarse.PUNCT else Coarse.VARIABLE
         type == RosTypes.STRING_START || type == RosTypes.STRING_END -> Coarse.PUNCT
         type == RosTypes.STRING_ESCAPE -> Coarse.ESCAPE
         type == RosTypes.STRING_TEXT -> Coarse.TEXT

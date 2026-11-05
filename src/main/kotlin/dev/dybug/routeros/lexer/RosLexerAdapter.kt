@@ -24,13 +24,24 @@ class RosLexerAdapter : LexerBase() {
     override fun start(buffer: CharSequence, startOffset: Int, endOffset: Int, initialState: Int) {
         this.buffer = buffer
         bufferEnd = endOffset
-        val lexicalState = if (initialState == 0) _RouterOsLexer.YYINITIAL else ((initialState and STATE_MASK) - 1).coerceAtLeast(0)
-        flex.reset(buffer, startOffset, endOffset, lexicalState)
+        flex.reset(buffer, if (initialState == 0) startOffset else 0, endOffset, _RouterOsLexer.YYINITIAL)
         flex.resetStack()
+        if (initialState != 0) replayTo(startOffset)
         tokenType = null
         tokenStart = startOffset
         tokenEnd = startOffset
         located = false
+    }
+
+    /**
+     * A non-zero state does not carry the full bracket/string stack, so rebuild it by lexing the
+     * buffer from its beginning up to [offset]. Editor highlighting never needs this (it restarts
+     * only at state 0); it keeps [restore] and other non-zero restarts correct.
+     */
+    private fun replayTo(offset: Int) {
+        while (flex.tokenEnd < offset) {
+            flex.advance() ?: break
+        }
     }
 
     override fun getState(): Int {
@@ -79,6 +90,5 @@ class RosLexerAdapter : LexerBase() {
 
     private companion object {
         const val STATE_BITS = 5
-        const val STATE_MASK = (1 shl STATE_BITS) - 1
     }
 }

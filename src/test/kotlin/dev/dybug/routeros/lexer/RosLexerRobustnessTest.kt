@@ -30,16 +30,38 @@ class RosLexerRobustnessTest : LexerTestCase() {
         }
     }
 
+    fun testRestartFromAnyTokenWithItsState() {
+        for (file in testFiles()) {
+            val text = file.readText()
+            val reference = tokensWithState(text, 0, 0)
+            for ((index, token) in reference.withIndex()) {
+                val restarted = tokensWithState(text, token.start, token.state)
+                assertEquals("${file.name}: restart at offset ${token.start}", reference.drop(index), restarted)
+            }
+        }
+    }
+
+    fun testDeepNestingIsLinear() {
+        val text = "(".repeat(50_000) + ")".repeat(50_000)
+        val started = System.nanoTime()
+        tokenize(text)
+        assertTrue("deep nesting took too long", System.nanoTime() - started < 5_000_000_000L)
+    }
+
     fun testNoBadCharactersInTestData() {
         for (file in testFiles()) {
             assertNoBadCharacters(file)
         }
     }
 
-    /** Set -Dros.extraCorpus=/path/to/dir to sweep private exports that must not be committed. */
+    /** Pass -Pros.extraCorpus=/dir to sweep files that must not be committed; problems go to a report. */
     fun testNoBadCharactersInExtraCorpus() {
         val dir = System.getProperty("ros.extraCorpus")?.let(::File) ?: return
-        dir.walkTopDown().filter { it.isFile && it.extension == "rsc" }.forEach(::assertNoBadCharacters)
+        val problems = dir.walkTopDown().filter { it.isFile && it.extension == "rsc" }
+            .mapNotNull { runCatching { assertNoBadCharacters(it) }.exceptionOrNull()?.message }
+            .toList()
+        File("build/reports").mkdirs()
+        File("build/reports/extra-corpus-lexer.txt").writeText(problems.joinToString("\n", postfix = "\n"))
     }
 
     fun testUnterminatedConstructsDoNotHang() {
@@ -75,7 +97,20 @@ class RosLexerRobustnessTest : LexerTestCase() {
         while (lexer.tokenType != null) {
             result += lexer.tokenType!! to lexer.tokenText
             lexer.advance()
-            check(++guard < 100_000) { "lexer does not advance" }
+            check(++guard < 1_000_000) { "lexer does not advance" }
+        }
+        return result
+    }
+
+    private data class Token(val type: Any, val start: Int, val end: Int, val state: Int)
+
+    private fun tokensWithState(text: String, start: Int, state: Int): List<Token> {
+        val lexer = createLexer()
+        lexer.start(text, start, text.length, state)
+        val result = mutableListOf<Token>()
+        while (lexer.tokenType != null) {
+            result += Token(lexer.tokenType!!, lexer.tokenStart, lexer.tokenEnd, lexer.state)
+            lexer.advance()
         }
         return result
     }

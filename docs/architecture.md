@@ -47,4 +47,5 @@ fingerprint of the state and stack.
 - `src/test/testData/oracle/*.json` — RouterOS's own highlighter output for the lexer test
   files. `RosHighlightOracleTest` compares coarse token classes and fails only when a file's
   mismatch count grows beyond its recorded baseline. Refresh with
-  `ROS_URL=http://router ROS_USER=… ROS_PASSWORD=… ./gradlew captureHighlightOracle`.
+  `ROS_URL=https://router ROS_USER=… ROS_PASSWORD=… ./gradlew captureHighlightOracle`
+  (plain HTTP only with `ROS_ALLOW_HTTP=true`, for disposable lab routers).

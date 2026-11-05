@@ -44,6 +44,9 @@ class RouterHighlightClient(baseUrl: String, user: String, password: String) {
     companion object {
         fun fromEnvironment(): RouterHighlightClient? {
             val url = System.getenv("ROS_URL")?.takeIf { it.isNotBlank() } ?: return null
+            require(url.startsWith("https://") || System.getenv("ROS_ALLOW_HTTP") == "true") {
+                "ROS_URL must use https:// (set ROS_ALLOW_HTTP=true to accept plain HTTP for a disposable lab router)"
+            }
             return RouterHighlightClient(url, System.getenv("ROS_USER") ?: "admin", System.getenv("ROS_PASSWORD") ?: "")
         }
     }

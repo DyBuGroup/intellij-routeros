@@ -10,7 +10,10 @@ import static dev.dybug.routeros.psi.RosTypes.*;
 
 %{
   private int[] stack = new int[16];
+  private int[] hashes = new int[16];
   private int depth = 0;
+  private int hash = 0;
+  private int stringFrames = 0;
 
   public _RouterOsLexer() {
     this((java.io.Reader) null);
@@ -19,30 +22,39 @@ import static dev.dybug.routeros.psi.RosTypes.*;
   /** Clears the bracket/string state stack; called whenever lexing (re)starts. */
   public void resetStack() {
     depth = 0;
+    hash = 0;
+    stringFrames = 0;
   }
 
   public boolean isStackEmpty() {
     return depth == 0;
   }
 
-  /** A cheap fingerprint of the state stack, used to encode it into the lexer state. */
+  /** A fingerprint of the state stack, maintained incrementally so it is O(1) per token. */
   public int stackHash() {
-    int h = depth;
-    for (int i = 0; i < depth; i++) {
-      h = h * 31 + stack[i];
-    }
-    return h;
+    return hash;
   }
 
   private void push(int returnState) {
     if (depth == stack.length) {
       stack = java.util.Arrays.copyOf(stack, depth * 2);
+      hashes = java.util.Arrays.copyOf(hashes, depth * 2);
     }
+    hashes[depth] = hash;
     stack[depth++] = returnState;
+    hash = hash * 31 + returnState + 1;
+    if (returnState == STRING) stringFrames++;
   }
 
   private void pop() {
-    yybegin(depth == 0 ? YYINITIAL : stack[--depth]);
+    if (depth == 0) {
+      yybegin(YYINITIAL);
+      return;
+    }
+    depth--;
+    hash = hashes[depth];
+    if (stack[depth] == STRING) stringFrames--;
+    yybegin(stack[depth]);
   }
 
   private void enter(int returnState, int newState) {
@@ -52,10 +64,7 @@ import static dev.dybug.routeros.psi.RosTypes.*;
 
   /** True when the lexer is inside $(...) or $[...] interpolation of a string literal. */
   private boolean inInterpolation() {
-    for (int i = 0; i < depth; i++) {
-      if (stack[i] == STRING) return true;
-    }
-    return false;
+    return stringFrames > 0;
   }
 
   /** Do not swallow the '-' of a following "->" into a word. */
@@ -129,7 +138,7 @@ EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
                            return TokenType.BAD_CHARACTER; }
   \"                     { enter(yystate() == YYINITIAL || yystate() == PATH ? ARGS : yystate(), STRING); return STRING_START; }
   "$" {VAR_NAME}         { if (yystate() == YYINITIAL) yybegin(SARGS); else if (yystate() == PATH) yybegin(ARGS);
-                           return VARIABLE; }
+                           return DOLLAR_NAME; }
   "$" / \"               { if (yystate() == YYINITIAL) yybegin(SARGS); else if (yystate() == PATH) yybegin(ARGS);
                            return DOLLAR; }
   "]" | "}" | ")"        { IElementType t = yycharat(0) == ']' ? RBRACKET : yycharat(0) == '}' ? RBRACE : RPAREN;
@@ -252,6 +261,7 @@ EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
   {EXPR_WORD}            { return WORD; }
 
   "->"                   { return ARROW; }
+  "<%%"                  { return APPLY; }
   "&&"                   { return ANDAND; }
   "||"                   { return OROR; }
   "!="                   { return NEQ; }
@@ -284,7 +294,7 @@ EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
   \\ [0-9A-F][0-9A-F]    { return STRING_ESCAPE; }
   \\ [^]                 { return STRING_INVALID_ESCAPE; }
   \\                     { return STRING_INVALID_ESCAPE; }
-  "$" {VAR_NAME}         { return VARIABLE; }
+  "$" {VAR_NAME}         { return DOLLAR_NAME; }
   "$" / [\(\[]           { yybegin(INTERP_OPEN); return DOLLAR; }
   "$"                    { return STRING_TEXT; }
   [^\"\\$]+              { return STRING_TEXT; }
