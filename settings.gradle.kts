@@ -24,3 +24,5 @@ dependencyResolutionManagement {
         }
     }
 }
+
+include(":tools:schema-extractor")

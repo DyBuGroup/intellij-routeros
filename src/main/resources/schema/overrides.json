@@ -1,0 +1,4 @@
+{
+  "comment": "Hand-written fixes applied on top of the generated schema. Keys are menu paths; values replace or add node fields.",
+  "nodes": {}
+}
