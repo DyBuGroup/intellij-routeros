@@ -42,6 +42,6 @@ object RosTokenSets {
         RosTypes.EQ, RosTypes.PLUS, RosTypes.MINUS, RosTypes.MUL, RosTypes.DIV, RosTypes.MOD,
         RosTypes.NEQ, RosTypes.LT, RosTypes.GT, RosTypes.LE, RosTypes.GE, RosTypes.NOT,
         RosTypes.ANDAND, RosTypes.OROR, RosTypes.BITAND, RosTypes.BITOR, RosTypes.XOR,
-        RosTypes.TILDE, RosTypes.SHL, RosTypes.SHR, RosTypes.DOT, RosTypes.ARROW,
+        RosTypes.TILDE, RosTypes.SHL, RosTypes.SHR, RosTypes.DOT, RosTypes.ARROW, RosTypes.APPLY,
     )
 }

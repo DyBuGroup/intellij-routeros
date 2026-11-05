@@ -1,0 +1,10 @@
+RouterOS File
+  RosCommandImpl(COMMAND)
+    RosPathImpl(PATH)
+      PsiElement(path word)('..')
+      PsiElement(path word)('print')
+  PsiElement(newline)('\n')
+  RosCommandImpl(COMMAND)
+    RosPathImpl(PATH)
+      PsiElement(/)('/')
+      PsiElement(path word)('..')

@@ -30,7 +30,7 @@ class RosSyntaxHighlighter : SyntaxHighlighterBase() {
             put(RosTypes.STRING_TEXT, RosHighlighterColors.STRING)
             put(RosTypes.STRING_ESCAPE, RosHighlighterColors.ESCAPE)
             put(RosTypes.STRING_INVALID_ESCAPE, RosHighlighterColors.INVALID_ESCAPE)
-            put(RosTypes.VARIABLE, RosHighlighterColors.VARIABLE)
+            put(RosTypes.DOLLAR_NAME, RosHighlighterColors.VARIABLE)
             put(RosTypes.DOLLAR, RosHighlighterColors.VARIABLE)
             put(RosTypes.NUMBER, RosHighlighterColors.NUMBER)
             put(RosTypes.LITERAL, RosHighlighterColors.LITERAL)

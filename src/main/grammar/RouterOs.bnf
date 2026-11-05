@@ -13,6 +13,12 @@
   elementTypeClass="dev.dybug.routeros.psi.RosElementType"
   tokenTypeClass="dev.dybug.routeros.psi.RosTokenType"
 
+  extends(".*_expr")=expr
+  name(".*_expr")=expression
+  name("named_argument")=argument
+  name("function_call")=command
+  name("command")=command
+
   tokens=[
     NEWLINE='newline'
     COMMENT='comment'
@@ -33,7 +39,7 @@
     WORD='word'
     ARG_NAME='argument name'
     CONTROL_ARG='control argument'
-    VARIABLE='variable'
+    DOLLAR_NAME='variable'
     SCRIPT_CMD='script command'
     CMD_LOCAL=':local'
     CMD_GLOBAL=':global'
@@ -74,13 +80,119 @@
     SHL='<<'
     SHR='>>'
     DOT='.'
+    APPLY='<%%'
   ]
 }
 
 file ::= file_item*
 
-private file_item ::= NEWLINE | COMMENT | SEMICOLON | LBRACE | RBRACE | LBRACKET | RBRACKET | LPAREN | RPAREN
-  | SLASH | EQ | DOLLAR | ARROW | COMMA | PATH_WORD | WORD | ARG_NAME | CONTROL_ARG | VARIABLE | SCRIPT_CMD
-  | CMD_LOCAL | CMD_GLOBAL | CMD_SET | WHERE_KW | STRING_START | STRING_END | STRING_TEXT | STRING_ESCAPE
-  | STRING_INVALID_ESCAPE | NUMBER | LITERAL | BOOLEAN | PLUS | MINUS | MUL | DIV | MOD | NEQ | LT | GT | LE | GE
-  | NOT | ANDAND | OROR | AND_KW | OR_KW | IN_KW | NOT_KW | BITAND | BITOR | XOR | TILDE | SHL | SHR | DOT
+private file_item ::= separator | statement_item | stray_token
+private separator ::= NEWLINE | SEMICOLON
+
+// a closing bracket without a matching opening one; reported by the annotator
+stray_token ::= RBRACE | RBRACKET | RPAREN
+
+private statement_item ::= !(<<eof>> | separator | RBRACE | RBRACKET | RPAREN) statement {
+  pin=1
+  recoverWhile=statement_recover
+}
+private statement_recover ::= !(separator | RBRACE | RBRACKET | RPAREN)
+
+private statement ::= local_decl
+  | global_decl
+  | set_statement
+  | script_command
+  | function_call
+  | command
+
+// ---------------------------------------------------------------- script commands
+local_decl ::= CMD_LOCAL decl_name? argument* {pin=1}
+global_decl ::= CMD_GLOBAL decl_name? argument* {pin=1}
+private decl_name ::= WORD | string
+
+set_statement ::= CMD_SET set_target? argument* {pin=1}
+private set_target ::= variable | paren_expr | WORD | string
+
+script_command ::= SCRIPT_CMD argument* {pin=1}
+
+// $f a b=c   (also a bare variable, e.g. an array element)
+function_call ::= variable argument*
+
+// ---------------------------------------------------------------- menu commands
+// /ip address add address=… ; add name=… (export style) ; also bare argument lists such as array items
+command ::= path argument* | argument+
+
+path ::= (SLASH | PATH_WORD)+
+
+private argument ::= named_argument | where_clause | value
+
+named_argument ::= arg_key EQ value? {pin=2}
+private arg_key ::= ARG_NAME | CONTROL_ARG | WORD | string
+
+// conditions written next to each other are implicitly and-ed: where a=1 !disabled
+where_clause ::= WHERE_KW expr* {pin=1}
+
+private value ::= string
+  | bracket_command
+  | paren_expr
+  | block
+  | variable
+  | WORD
+  | NUMBER
+  | LITERAL
+  | BOOLEAN
+  | LT
+  | GT
+
+// ---------------------------------------------------------------- blocks, substitutions, strings, variables
+block ::= LBRACE inner_item* RBRACE {pin=1}
+bracket_command ::= LBRACKET inner_item* RBRACKET {pin=1}
+private inner_item ::= separator | statement_item | inner_stray
+private inner_stray ::= RPAREN
+
+string ::= STRING_START string_part* STRING_END {pin=1}
+private string_part ::= STRING_TEXT | STRING_ESCAPE | STRING_INVALID_ESCAPE | variable | interpolation
+interpolation ::= DOLLAR (paren_expr | bracket_command) {pin=1}
+
+variable ::= (DOLLAR_NAME | DOLLAR string) variable_index*
+variable_index ::= ARROW index_key {pin=1}
+private index_key ::= WORD | NUMBER | LITERAL | BOOLEAN | string | paren_expr | bracket_command | variable
+
+// ---------------------------------------------------------------- expressions ( … ) and where clauses
+expr ::= or_expr
+  | and_expr
+  | match_expr
+  | compare_expr
+  | apply_expr
+  | concat_expr
+  | bit_or_expr
+  | bit_xor_expr
+  | bit_and_expr
+  | shift_expr
+  | add_expr
+  | mul_expr
+  | unary_expr
+  | index_expr
+  | paren_expr
+  | primary_expr
+
+or_expr ::= expr (OROR | OR_KW) expr
+and_expr ::= expr (ANDAND | AND_KW) expr
+match_expr ::= expr (IN_KW | TILDE) expr
+compare_expr ::= expr (EQ | NEQ | LT | GT | LE | GE) expr
+// $f <%% {args}  (apply a function to an array of arguments, RouterOS 7)
+apply_expr ::= expr APPLY expr
+concat_expr ::= expr (DOT | COMMA) expr
+bit_or_expr ::= expr BITOR expr
+bit_xor_expr ::= expr XOR expr
+bit_and_expr ::= expr BITAND expr
+shift_expr ::= expr (SHL | SHR) expr
+add_expr ::= expr (PLUS | MINUS) expr
+mul_expr ::= expr (MUL | DIV | MOD) expr
+// >[ … ] is an "op" value (a deferred command)
+unary_expr ::= (NOT | MINUS | NOT_KW | TILDE | GT) expr
+index_expr ::= expr variable_index
+paren_expr ::= LPAREN paren_body RPAREN {pin=1}
+private paren_body ::= (expr | SEMICOLON)* {recoverWhile=paren_recover}
+private paren_recover ::= !(RPAREN | RBRACE | RBRACKET)
+primary_expr ::= NUMBER | LITERAL | BOOLEAN | WORD | variable | string | bracket_command | block

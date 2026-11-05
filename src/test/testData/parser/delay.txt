@@ -1,0 +1,8 @@
+RouterOS File
+  RosScriptCommandImpl(SCRIPT_COMMAND)
+    PsiElement(script command)(':delay')
+    PsiElement(word)('200ms')
+  PsiElement(;)(';')
+  RosScriptCommandImpl(SCRIPT_COMMAND)
+    PsiElement(script command)(':delay')
+    PsiElement(word)('00:00:01')

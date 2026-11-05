@@ -14,6 +14,7 @@ import dev.dybug.routeros.RosLanguage
 import dev.dybug.routeros.lexer.RosLexerAdapter
 import dev.dybug.routeros.psi.RosFile
 import dev.dybug.routeros.psi.RosTokenSets
+import dev.dybug.routeros.psi.RosTypes
 
 class RosParserDefinition : ParserDefinition {
     override fun createLexer(project: Project?): Lexer = RosLexerAdapter()
@@ -28,7 +29,7 @@ class RosParserDefinition : ParserDefinition {
 
     override fun getStringLiteralElements(): TokenSet = RosTokenSets.STRING_PARTS
 
-    override fun createElement(node: ASTNode): PsiElement = throw IllegalStateException("Unexpected element type: ${node.elementType}")
+    override fun createElement(node: ASTNode): PsiElement = RosTypes.Factory.createElement(node)
 
     override fun createFile(viewProvider: FileViewProvider): PsiFile = RosFile(viewProvider)
 

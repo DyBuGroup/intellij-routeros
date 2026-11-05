@@ -1,0 +1,4 @@
+# Corpus files that are invalid on purpose (path relative to corpus/).
+tikoci/intentional-errors.rsc
+tikoci/bad-command.rsc
+tikoci/missing-brace.rsc
