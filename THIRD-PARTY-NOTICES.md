@@ -18,3 +18,9 @@ directory). These files are not part of the plugin distribution.
 `src/main/resources/schema/routeros-*.json.gz` is generated from the public RouterOS CLI
 reference at <https://manual.mikrotik.com/docs/cli-reference/>. Descriptions are MikroTik's;
 the plugin links back to the original pages.
+
+## MikroTik logo
+
+The plugin and file icons use the MikroTik symbol from <https://mikrotik.com/logo/library>.
+MikroTik and the MikroTik logo are trademarks of SIA Mikrotīkls. This plugin is not affiliated
+with or endorsed by MikroTik.

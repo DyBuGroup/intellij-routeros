@@ -17,7 +17,7 @@ class RosColorSettingsPage : ColorSettingsPage {
     override fun getDemoText(): String = DEMO
 
     override fun getAdditionalHighlightingTagToDescriptorMap(): Map<String, TextAttributesKey> =
-        mapOf("cmd" to RosHighlighterColors.COMMAND)
+        mapOf("cmd" to RosHighlighterColors.COMMAND, "val" to RosHighlighterColors.VALUE)
 
     override fun getAttributeDescriptors(): Array<AttributesDescriptor> = DESCRIPTORS
 
@@ -60,6 +60,8 @@ class RosColorSettingsPage : ColorSettingsPage {
             <cmd>add</cmd> name=bridge1 vlan-filtering=yes comment="LAN \"bridge\""
             /ip address
             <cmd>add</cmd> address=192.168.88.1/24 interface=bridge1
+            /ip service
+            <cmd>set</cmd> <val>www</val> address="${'$'}lanAddress.0/24" port=8080
             /ip firewall filter
             <cmd>add</cmd> action=accept chain=input connection-state=established,related \
                 comment="defconf: accept established"

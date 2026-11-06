@@ -6,6 +6,12 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Menu paths and commands use the function-name colour; values, properties and variables each have
+  their own colour
+- MikroTik symbol as plugin and file icon, with light and dark variants
+
 ## [1.0.0] - 2026-11-06
 
 ### Added
