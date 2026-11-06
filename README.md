@@ -30,6 +30,8 @@ files (`.rsc`).
   with clickable errors and live log, validate with the router's parser, open/compare
   `/export`, schema sync from the router, log tool window — see
   [docs/device-integration.md](docs/device-integration.md)
+- Experimental pseudo-debugger (opt-in): breakpoints, stepping and variables through an
+  instrumented copy of the script
 - Works fully offline; no router required for editing features
 <!-- Plugin description end -->
 

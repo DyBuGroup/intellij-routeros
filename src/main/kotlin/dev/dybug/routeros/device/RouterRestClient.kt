@@ -36,7 +36,12 @@ class RouterRestClient(
     password: String,
     proxySelector: ProxySelector? = null,
 ) {
-    private val base: URI = parseBase(profile.url)
+    private val base: URI = parseBase(profile.url).also {
+        // VERIFY and PINNED promise protected credentials; plain HTTP needs the explicit INSECURE mode
+        if (it.scheme == "http" && profile.tlsMode != TlsMode.INSECURE) {
+            throw RouterException("Plain http:// sends the password unencrypted. Use https:// or set TLS mode to INSECURE.")
+        }
+    }
     private val authorization = "Basic " + Base64.getEncoder().encodeToString("${profile.user}:$password".toByteArray())
     private val client: HttpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(10))
@@ -57,7 +62,20 @@ class RouterRestClient(
             addProperty("as-string", "yes")
         }
         val result = request("POST", "execute", body, timeout)
-        return (result as? JsonObject)?.get("ret")?.asString.orEmpty()
+        return string(result, "ret")
+    }
+
+    /** Starts a script as a background job and returns at once (the job id). */
+    fun executeInBackground(script: String): String {
+        val body = JsonObject().apply { addProperty("script", script) }
+        val result = request("POST", "execute", body, Duration.ofSeconds(30))
+        return string(result, "ret")
+    }
+
+    /** Contents of a router file, or null if it does not exist. Large files are truncated by RouterOS. */
+    fun fileContents(name: String): String? {
+        val array = request("GET", "file?name=" + encode(name), null, Duration.ofSeconds(30)) as? JsonArray ?: return null
+        return array.firstOrNull()?.asJsonObject?.get("contents")?.asString
     }
 
     /** One RouterOS highlight class per character of [input] (non-ASCII characters are sent as `?`). */
@@ -66,9 +84,11 @@ class RouterRestClient(
             addProperty("request", "highlight")
             addProperty("input", input.map { if (it.code < 128) it else '?' }.joinToString(""))
         }
-        val array = request("POST", "console/inspect", body, Duration.ofSeconds(60)) as? JsonArray ?: return emptyList()
-        val highlight = array.map { it.asJsonObject }.firstOrNull { it.get("type")?.asString == "highlight" }
-            ?.get("highlight")?.asString ?: return emptyList()
+        // fail closed: validation must not pass because the answer had an unexpected shape
+        val array = request("POST", "console/inspect", body, Duration.ofSeconds(60)) as? JsonArray ?: throw protocol()
+        val highlight = guarded {
+            array.map { it.asJsonObject }.firstOrNull { it.get("type")?.asString == "highlight" }?.get("highlight")?.asString
+        } ?: throw protocol()
         return highlight.split(',')
     }
 
@@ -120,6 +140,15 @@ class RouterRestClient(
         request("DELETE", "system/script/job/" + encode(id), null, Duration.ofSeconds(15))
     }
 
+    /** Global variables of the user's script environment: name → value as text. */
+    fun environment(): Map<String, String> {
+        val array = request("GET", "system/script/environment", null, Duration.ofSeconds(15)) as? JsonArray ?: return emptyMap()
+        return array.map { it.asJsonObject }.mapNotNull { entry ->
+            val name = entry.get("name")?.asString ?: return@mapNotNull null
+            name to (entry.get("value")?.takeUnless { it.isJsonNull }?.asString ?: "")
+        }.toMap()
+    }
+
     /** Log entries; each map has `.id`, `time`, `topics`, `message`. */
     fun log(): List<Map<String, String>> {
         val array = request("GET", "log?.proplist=.id,time,topics,message", null, Duration.ofSeconds(15)) as? JsonArray
@@ -127,7 +156,27 @@ class RouterRestClient(
         return array.map { entry -> entry.asJsonObject.entrySet().associate { it.key to it.value.asString } }
     }
 
-    private fun request(method: String, path: String, body: JsonObject?, timeout: Duration): JsonElement {
+    private fun protocol() = RouterException("Unexpected response from the router")
+
+    private fun string(element: JsonElement, key: String): String =
+        guarded { (element as? JsonObject)?.get(key)?.takeUnless { it.isJsonNull }?.asString } ?: throw protocol()
+
+    /** Unexpected JSON shapes become [RouterException] instead of unchecked exceptions. */
+    private fun <T> guarded(block: () -> T): T = try {
+        block()
+    } catch (e: IllegalStateException) {
+        throw RouterException("Unexpected response from the router", cause = e)
+    } catch (e: UnsupportedOperationException) {
+        throw RouterException("Unexpected response from the router", cause = e)
+    } catch (e: ClassCastException) {
+        throw RouterException("Unexpected response from the router", cause = e)
+    }
+
+    private fun request(method: String, path: String, body: JsonObject?, timeout: Duration): JsonElement = guarded {
+        rawRequest(method, path, body, timeout)
+    }
+
+    private fun rawRequest(method: String, path: String, body: JsonObject?, timeout: Duration): JsonElement {
         val uri = base.resolve("rest/$path")
         val builder = HttpRequest.newBuilder(uri)
             .timeout(timeout)
@@ -137,7 +186,7 @@ class RouterRestClient(
         if (body != null) builder.header("Content-Type", "application/json")
         builder.method(method, publisher)
         val response = try {
-            client.send(builder.build(), HttpResponse.BodyHandlers.ofString())
+            client.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream())
         } catch (e: HttpTimeoutException) {
             throw RouterException("The router did not answer within ${timeout.seconds} s", cause = e)
         } catch (e: javax.net.ssl.SSLException) {
@@ -148,7 +197,11 @@ class RouterRestClient(
             Thread.currentThread().interrupt()
             throw RouterException("Interrupted", cause = e)
         }
-        val text = response.body().orEmpty()
+        val text = response.body().use { stream ->
+            val bytes = stream.readNBytes(MAX_RESPONSE_BYTES + 1)
+            if (bytes.size > MAX_RESPONSE_BYTES) throw RouterException("The router response exceeds ${MAX_RESPONSE_BYTES / (1024 * 1024)} MB")
+            String(bytes, Charsets.UTF_8)
+        }
         if (response.statusCode() == 401) throw RouterException("Authentication failed for user '${profile.user}'", 401)
         if (response.statusCode() == 403) throw RouterException("The user '${profile.user}' lacks the policy for this action", 403)
         if (response.statusCode() !in 200..299) throw RouterException(errorMessage(response.statusCode(), text), response.statusCode())
@@ -173,6 +226,9 @@ class RouterRestClient(
     private fun encode(segment: String) = URLEncoder.encode(segment, Charsets.UTF_8).replace("+", "%20")
 
     companion object {
+        /** Exports and logs are well below this; anything larger is not a RouterOS answer we want in memory. */
+        const val MAX_RESPONSE_BYTES = 32 * 1024 * 1024
+
         fun parseBase(url: String): URI {
             val trimmed = url.trim().trimEnd('/')
             val uri = try {

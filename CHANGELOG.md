@@ -21,3 +21,5 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Formatter and code style settings, live templates, file template, surround with, spell checking
 - Router connections (password safe, TLS pinning), run configurations, log tool window,
   validate on router, open/compare export, schema sync with version banner
+- Runs execute as background jobs so log tail and Stop stay responsive
+- Experimental pseudo-debugger behind an advanced setting

@@ -46,6 +46,7 @@ class RosDeviceIdeTest : BasePlatformTestCase() {
         val settings = RosDeviceSettings.getInstance(project)
         settings.update(listOf(RouterProfile().apply { name = "lab"; url = "https://10.0.0.1" }), "lab")
         assertEquals("https://10.0.0.1", settings.profile(null)?.url)
-        assertEquals("lab", settings.profile("missing")?.name)
+        assertNull(settings.profile("missing"))
+        assertEquals("lab", settings.profile("")?.name)
     }
 }

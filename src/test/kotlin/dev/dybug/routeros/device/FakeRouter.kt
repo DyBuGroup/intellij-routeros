@@ -36,6 +36,7 @@ class FakeRouter : AutoCloseable {
         name = "fake"
         url = this@FakeRouter.url
         user = "ide"
+        tlsMode = TlsMode.INSECURE
         timeoutSeconds = 10
     }
 

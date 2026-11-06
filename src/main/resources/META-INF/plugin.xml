@@ -5,6 +5,7 @@
   <resource-bundle>messages.RosBundle</resource-bundle>
 
   <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.xdebugger</depends>
 
   <extensions defaultExtensionNs="com.intellij">
     <fileType name="RouterOS Script"
@@ -104,6 +105,10 @@
                 factoryClass="dev.dybug.routeros.device.log.RosLogToolWindowFactory"/>
     <notificationGroup id="RouterOS" displayType="BALLOON" key="notification.group.routeros"/>
     <editorNotificationProvider implementation="dev.dybug.routeros.device.sync.RosSchemaVersionNotificationProvider"/>
+    <xdebugger.breakpointType implementation="dev.dybug.routeros.device.debug.RosLineBreakpointType"/>
+    <programRunner implementation="dev.dybug.routeros.device.debug.RosDebugRunner"/>
+    <advancedSetting id="routeros.debugger.enabled" default="false" groupKey="group.advanced.settings.routeros"
+                     bundle="messages.RosBundle"/>
     <indexPatternBuilder implementation="dev.dybug.routeros.editor.RosIndexPatternBuilder"/>
     <todoIndexer filetype="RouterOS Script" implementationClass="dev.dybug.routeros.editor.RosTodoIndexer"/>
   </extensions>

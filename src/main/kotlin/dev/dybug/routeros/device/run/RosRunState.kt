@@ -16,6 +16,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import dev.dybug.routeros.RosBundle
+import dev.dybug.routeros.device.RouterBackgroundRun
 import dev.dybug.routeros.device.RouterConnections
 import dev.dybug.routeros.device.RouterException
 import dev.dybug.routeros.device.RouterRestClient
@@ -47,17 +48,16 @@ class RosRunState(private val configuration: RosRunConfiguration, private val en
         lateinit var handler: RosRunProcessHandler
 
         @Volatile
-        private var client: RouterRestClient? = null
+        private var background: RouterBackgroundRun? = null
 
         @Volatile
-        private var uploadedScript: String? = null
+        private var importedFile: String? = null
 
         fun execute() {
             var tailer: RouterLogTailer? = null
             var exitCode = 0
             try {
                 val (profile, client) = RouterConnections.client(environment.project, configuration.profile)
-                this.client = client
                 val text = String(file.contentsToByteArray(), file.charset)
                 val exportStyle = ReadAction.compute<Boolean, RuntimeException> {
                     (PsiManager.getInstance(environment.project).findFile(file) as? RosFile)?.let(RosRemoteValidator::isExportStyle) ?: false
@@ -83,6 +83,7 @@ class RosRunState(private val configuration: RosRunConfiguration, private val en
                 }
                 if (handler.cancelled) return
 
+                if (handler.cancelled) return
                 if (configuration.tailLog) {
                     tailer = RouterLogTailer(
                         client,
@@ -91,10 +92,19 @@ class RosRunState(private val configuration: RosRunConfiguration, private val en
                     ).also { it.start() }
                 }
 
-                val output = when (mode) {
-                    RunMode.IMPORT -> runImport(client, text)
-                    RunMode.UPLOAD_AND_RUN -> runUploaded(client, text)
-                    else -> client.execute(text)
+                val prefix = if (mode == RunMode.UPLOAD_AND_RUN) {
+                    "ide-" + file.nameWithoutExtension.replace(Regex("[^A-Za-z0-9_-]"), "_").take(32)
+                } else {
+                    "ide-run"
+                }
+                if (handler.cancelled) return
+                val run = RouterBackgroundRun(client, prefix).also { background = it }
+                val output = try {
+                    run.start(if (mode == RunMode.IMPORT) importScript(client, text) else text)
+                    run.await(profile.timeoutSeconds * 1000L) { !handler.cancelled }
+                } finally {
+                    run.cleanUp(keepScript = mode == RunMode.UPLOAD_AND_RUN && configuration.keepUploadedScript)
+                    importedFile?.let { name -> runCatching { client.deleteFile(name) } }
                 }
                 tailer?.flush()
                 output.lineSequence().filter { it.isNotEmpty() }.forEach { line ->
@@ -110,47 +120,24 @@ class RosRunState(private val configuration: RosRunConfiguration, private val en
                 exitCode = 1
             } finally {
                 tailer?.stop()
-                cleanUp()
             }
+            if (handler.cancelled) return
             handler.print(RosBundle.message("run.console.done", exitCode), ProcessOutputType.SYSTEM)
             handler.finish(exitCode)
         }
 
-        private fun runImport(client: RouterRestClient, text: String): String {
-            val name = "ide-run-" + UUID.randomUUID().toString().take(8) + ".rsc"
+        /** Uploads the export as a file; the job then imports it. */
+        private fun importScript(client: RouterRestClient, text: String): String {
+            val name = "ide-import-" + UUID.randomUUID().toString().take(8) + ".rsc"
             client.putFile(name, text)
-            try {
-                return client.execute("/import file-name=$name verbose=yes")
-            } finally {
-                runCatching { client.deleteFile(name) }
-            }
+            importedFile = name
+            return "/import file-name=$name verbose=yes"
         }
 
-        private fun runUploaded(client: RouterRestClient, text: String): String {
-            val name = "ide-" + file.nameWithoutExtension.replace(Regex("[^A-Za-z0-9_-]"), "_").take(40)
-            runCatching { client.deleteScript(name) }
-            client.putScript(name, text)
-            uploadedScript = name
-            return client.execute("/system script run $name")
-        }
-
-        /** Stop: remove the job of the uploaded script; an inline /execute cannot be interrupted safely. */
+        /** Stop removes the background job. */
         fun stop() {
-            val client = client ?: return
-            ApplicationManager.getApplication().executeOnPooledThread {
-                val script = uploadedScript
-                if (script != null) {
-                    runCatching { client.jobs().filter { it.second == script }.forEach { client.removeJob(it.first) } }
-                }
-                cleanUp()
-            }
-        }
-
-        private fun cleanUp() {
-            val script = uploadedScript ?: return
-            if (configuration.keepUploadedScript) return
-            uploadedScript = null
-            runCatching { client?.deleteScript(script) }
+            val run = background ?: return
+            ApplicationManager.getApplication().executeOnPooledThread { run.stop() }
         }
     }
 }
