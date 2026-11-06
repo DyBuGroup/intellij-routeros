@@ -21,6 +21,7 @@ import dev.dybug.routeros.psi.RosNamedArgument
 import dev.dybug.routeros.psi.RosPath
 import dev.dybug.routeros.psi.RosPsiUtil
 import dev.dybug.routeros.psi.RosScopes
+import dev.dybug.routeros.psi.RosString
 import dev.dybug.routeros.psi.RosTokenSets
 import dev.dybug.routeros.psi.RosTypes
 import dev.dybug.routeros.psi.RosWhereClause
@@ -43,6 +44,12 @@ class RosCompletionContributor : CompletionContributor() {
             RosTypes.DOLLAR_NAME -> completeVariables(position, result.withPrefixMatcher(prefix(parameters, 1)))
             in RosTokenSets.SCRIPT_COMMANDS -> completeScriptCommands(schema, result.withPrefixMatcher(prefix(parameters, 1)))
             RosTypes.PATH_WORD -> completePath(position, schema, result.withPrefixMatcher(prefix(parameters, 0)))
+            RosTypes.STRING_TEXT -> {
+                // action="dr|": complete the value inside the quotes
+                val string = position.parent as? RosString ?: return
+                val argument = string.parent as? RosNamedArgument ?: return
+                if (RosPsiUtil.argumentValue(argument) === string) completeValues(argument, schema, result.withPrefixMatcher(prefix(parameters, 0)))
+            }
             RosTypes.WORD, RosTypes.ARG_NAME, RosTypes.CONTROL_ARG ->
                 completeArgumentPosition(position, schema, result.withPrefixMatcher(prefix(parameters, 0)))
         }

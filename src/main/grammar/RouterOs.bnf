@@ -106,11 +106,22 @@ private statement ::= local_decl
   | command
 
 // ---------------------------------------------------------------- script commands
-local_decl ::= CMD_LOCAL decl_name? argument* {pin=1}
-global_decl ::= CMD_GLOBAL decl_name? argument* {pin=1}
+local_decl ::= CMD_LOCAL decl_name? argument* {
+  pin=1
+  mixin="dev.dybug.routeros.psi.impl.RosDeclarationMixin"
+  implements="dev.dybug.routeros.psi.RosDeclaration"
+}
+global_decl ::= CMD_GLOBAL decl_name? argument* {
+  pin=1
+  mixin="dev.dybug.routeros.psi.impl.RosDeclarationMixin"
+  implements="dev.dybug.routeros.psi.RosDeclaration"
+}
 private decl_name ::= WORD | string
 
-set_statement ::= CMD_SET set_target? argument* {pin=1}
+set_statement ::= CMD_SET set_target? argument* {
+  pin=1
+  mixin="dev.dybug.routeros.psi.impl.RosSetStatementMixin"
+}
 private set_target ::= variable | paren_expr | WORD | string
 
 script_command ::= SCRIPT_CMD argument* {pin=1}
@@ -163,7 +174,9 @@ string ::= STRING_START string_part* STRING_END {
 private string_part ::= STRING_TEXT | STRING_ESCAPE | STRING_INVALID_ESCAPE | variable | interpolation
 interpolation ::= DOLLAR (paren_expr | bracket_command) {pin=1}
 
-variable ::= (DOLLAR_NAME | DOLLAR string) variable_index*
+variable ::= (DOLLAR_NAME | DOLLAR string) variable_index* {
+  mixin="dev.dybug.routeros.psi.impl.RosVariableMixin"
+}
 variable_index ::= ARROW index_key {pin=1}
 private index_key ::= WORD | NUMBER | LITERAL | BOOLEAN | string | paren_expr | bracket_command | variable
 

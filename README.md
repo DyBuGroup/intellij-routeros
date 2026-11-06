@@ -18,7 +18,12 @@ files (`.rsc`).
 - Completion for menu paths, commands, properties (`name=`), values (enums, yes/no,
   interface names from the file), `:` commands and variables in scope
 - Quick documentation (Ctrl+Q) from the official CLI reference, parameter info (Ctrl+P)
-- Weak warnings for unknown properties and values that do not fit the documented type
+- Go to declaration, find usages and rename for variables and functions (`:global` across files),
+  Go to Symbol, gutter icons on functions
+- Inspections with quick fixes: undefined/undeclared variables, unused locals, unknown properties
+  (did you mean), wrong values, v6 syntax, missing mandatory properties, whitespace before `=`,
+  invalid names, `{}` arrays, missing `do=`, unreachable code, misplaced comments
+- Intentions: space ⇄ slash menu paths, quote/unquote values, wrap in `:do { } on-error={ }`
 - Works fully offline; no router required for editing features
 <!-- Plugin description end -->
 

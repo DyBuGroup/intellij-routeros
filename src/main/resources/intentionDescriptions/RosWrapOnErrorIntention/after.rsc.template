@@ -1,0 +1,1 @@
+<spot>:do { /tool fetch url="https://example.com/list.txt" } on-error={ :log warning "failed" }</spot>

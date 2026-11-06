@@ -7,25 +7,26 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import dev.dybug.routeros.RosBundle
 import dev.dybug.routeros.psi.RosCommand
-import dev.dybug.routeros.psi.RosNamedArgument
 import dev.dybug.routeros.psi.RosPsiUtil
 import dev.dybug.routeros.psi.RosStrayToken
-import dev.dybug.routeros.psi.RosString
 import dev.dybug.routeros.psi.RosTypes
 import dev.dybug.routeros.schema.RosSchema
 import dev.dybug.routeros.schema.RosSchemaContext
 import dev.dybug.routeros.schema.RosSchemaService
-import dev.dybug.routeros.schema.ValueTypeDetector
 
 /**
  * Semantic highlighting from the schema (command words vs menus vs positional values) and
- * conservative weak warnings for unknown properties and values that clearly do not fit.
+ * syntax errors that the parser accepts (unmatched brackets, invalid escapes). Schema-based
+ * warnings live in inspections so that users can tune them.
  */
 class RosAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         when (element) {
             is RosStrayToken -> holder.newAnnotation(HighlightSeverity.ERROR, RosBundle.message("annotator.unmatched", element.text)).create()
             is RosCommand -> annotateCommand(element, holder)
+            else -> if (element.elementType == RosTypes.STRING_INVALID_ESCAPE) {
+                holder.newAnnotation(HighlightSeverity.ERROR, RosBundle.message("annotator.invalid.escape", element.text)).create()
+            }
         }
     }
 
@@ -34,12 +35,6 @@ class RosAnnotator : Annotator {
         val path = command.path
         val target = RosSchemaContext.target(command, schema)
         if (path != null) colorPath(command, target, holder)
-        if (!target.isKnown) return
-        val arguments = schema.argumentsOf(target)
-        val checkNames = arguments.isNotEmpty() && (target.command != null || target.verb == "add" || target.verb == "set")
-        for (argument in RosPsiUtil.namedArguments(command)) {
-            annotateArgument(argument, arguments, checkNames, schema, holder)
-        }
     }
 
     private fun colorPath(command: RosCommand, target: RosSchema.CommandTarget, holder: AnnotationHolder) {
@@ -59,38 +54,5 @@ class RosAnnotator : Annotator {
             }
             holder.newSilentAnnotation(HighlightSeverity.INFORMATION).range(word).textAttributes(key).create()
         }
-    }
-
-    private fun annotateArgument(
-        argument: RosNamedArgument,
-        arguments: Map<String, dev.dybug.routeros.schema.SchemaArg>,
-        checkNames: Boolean,
-        schema: RosSchema,
-        holder: AnnotationHolder,
-    ) {
-        val key = argument.firstChild ?: return
-        if (key.elementType != RosTypes.ARG_NAME) return
-        val name = key.text
-        val arg = arguments[name]
-        if (arg == null) {
-            if (checkNames && !name.contains('.') && !name.startsWith("!") && name !in schema.builtins.universalArguments) {
-                holder.newAnnotation(HighlightSeverity.WEAK_WARNING, RosBundle.message("annotator.unknown.property", name))
-                    .range(key)
-                    .create()
-            }
-            return
-        }
-        if (arg.deprecated) {
-            holder.newAnnotation(HighlightSeverity.WEAK_WARNING, RosBundle.message("annotator.deprecated.property", name))
-                .range(key)
-                .create()
-        }
-        val value = RosPsiUtil.argumentValue(argument) ?: return
-        if (value.elementType != RosTypes.WORD && value !is RosString) return
-        val text = RosPsiUtil.argumentValueText(argument) ?: return
-        val problem = ValueTypeDetector.problem(text, arg.type) ?: return
-        holder.newAnnotation(HighlightSeverity.WEAK_WARNING, RosBundle.message("annotator.bad.value", name, problem))
-            .range(value)
-            .create()
     }
 }

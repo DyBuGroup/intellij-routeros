@@ -114,7 +114,9 @@ object RosPsiUtil {
         val segments = resolve(emptyList(), pathSegments(path))
         val node = schema.node(segments)
         if (node != null) return node.kind != SchemaNode.Kind.COMMAND
-        return schema.resolveCommand(segments).verb == null
+        val target = schema.resolveCommand(segments)
+        // an unknown word followed by more words is most likely a command with positional arguments
+        return target.verb == null && target.consumed >= segments.size - 1
     }
 
     /** A top-level command that continues an export section: relative path or no path at all. */

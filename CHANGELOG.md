@@ -16,3 +16,5 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Language injection into script-valued string properties
 - Bundled RouterOS 7.26 schema generated from the official CLI reference
 - Completion, quick documentation, parameter info and schema-aware annotations
+- Variable/function references with cross-file globals, find usages, rename, Go to Symbol
+- 13 inspections with quick fixes and 3 intentions

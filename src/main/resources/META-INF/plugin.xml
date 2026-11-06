@@ -34,6 +34,55 @@
                                implementationClass="dev.dybug.routeros.completion.RosParameterInfoHandler"/>
     <lang.documentationProvider language="RouterOS"
                                 implementationClass="dev.dybug.routeros.documentation.RosDocumentationProvider"/>
+    <fileBasedIndex implementation="dev.dybug.routeros.references.RosGlobalIndex"/>
+    <lang.findUsagesProvider language="RouterOS" implementationClass="dev.dybug.routeros.references.RosFindUsagesProvider"/>
+    <lang.namesValidator language="RouterOS" implementationClass="dev.dybug.routeros.references.RosNamesValidator"/>
+    <lang.refactoringSupport language="RouterOS"
+                             implementationClass="dev.dybug.routeros.references.RosRefactoringSupportProvider"/>
+    <gotoSymbolContributor implementation="dev.dybug.routeros.references.RosGotoSymbolContributor"/>
+    <localInspection language="RouterOS" shortName="RosUndefinedVariable" displayName="Undefined variable" groupName="RouterOS"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.dybug.routeros.inspections.RosUndefinedVariableInspection"/>
+    <localInspection language="RouterOS" shortName="RosUnusedLocal" displayName="Unused local variable" groupName="RouterOS"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.dybug.routeros.inspections.RosUnusedLocalInspection"/>
+    <localInspection language="RouterOS" shortName="RosUnknownProperty" displayName="Unknown property" groupName="RouterOS"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.dybug.routeros.inspections.RosUnknownPropertyInspection"/>
+    <localInspection language="RouterOS" shortName="RosValueType" displayName="Value does not match the property type" groupName="RouterOS"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.dybug.routeros.inspections.RosValueTypeInspection"/>
+    <localInspection language="RouterOS" shortName="RosDeprecatedProperty" displayName="Deprecated or v6 property" groupName="RouterOS"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.dybug.routeros.inspections.RosDeprecatedPropertyInspection"/>
+    <localInspection language="RouterOS" shortName="RosMissingMandatoryProperty" displayName="Missing mandatory property" groupName="RouterOS"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.dybug.routeros.inspections.RosMissingMandatoryPropertyInspection"/>
+    <localInspection language="RouterOS" shortName="RosShadowedProperty" displayName="Variable shadowed by a property in where" groupName="RouterOS"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.dybug.routeros.inspections.RosShadowedPropertyInspection"/>
+    <localInspection language="RouterOS" shortName="RosSpaceBeforeEquals" displayName="Whitespace before '='" groupName="RouterOS"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.dybug.routeros.inspections.RosSpaceBeforeEqualsInspection"/>
+    <localInspection language="RouterOS" shortName="RosInvalidVariableName" displayName="Invalid variable name" groupName="RouterOS"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.dybug.routeros.inspections.RosInvalidVariableNameInspection"/>
+    <localInspection language="RouterOS" shortName="RosEmptyArray" displayName="Empty array literal" groupName="RouterOS"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.dybug.routeros.inspections.RosEmptyArrayInspection"/>
+    <localInspection language="RouterOS" shortName="RosMissingDoBlock" displayName="Missing do block" groupName="RouterOS"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.dybug.routeros.inspections.RosMissingDoBlockInspection"/>
+    <localInspection language="RouterOS" shortName="RosUnreachableCode" displayName="Unreachable code" groupName="RouterOS"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.dybug.routeros.inspections.RosUnreachableCodeInspection"/>
+    <localInspection language="RouterOS" shortName="RosCommentAfterValue" displayName="Comment directly after a command" groupName="RouterOS"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.dybug.routeros.inspections.RosCommentAfterValueInspection"/>
+    <codeInsight.lineMarkerProvider language="RouterOS"
+                                    implementationClass="dev.dybug.routeros.editor.RosFunctionLineMarkerProvider"/>
+    <intentionAction>
+      <language>RouterOS</language>
+      <className>dev.dybug.routeros.intentions.RosConvertPathStyleIntention</className>
+      <category>RouterOS</category>
+    </intentionAction>
+    <intentionAction>
+      <language>RouterOS</language>
+      <className>dev.dybug.routeros.intentions.RosToggleQuotesIntention</className>
+      <category>RouterOS</category>
+    </intentionAction>
+    <intentionAction>
+      <language>RouterOS</language>
+      <className>dev.dybug.routeros.intentions.RosWrapOnErrorIntention</className>
+      <category>RouterOS</category>
+    </intentionAction>
     <indexPatternBuilder implementation="dev.dybug.routeros.editor.RosIndexPatternBuilder"/>
     <todoIndexer filetype="RouterOS Script" implementationClass="dev.dybug.routeros.editor.RosTodoIndexer"/>
   </extensions>

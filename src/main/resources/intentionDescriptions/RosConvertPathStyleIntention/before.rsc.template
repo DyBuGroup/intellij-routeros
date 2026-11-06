@@ -1,0 +1,1 @@
+<spot>/ip firewall filter</spot> add chain=input

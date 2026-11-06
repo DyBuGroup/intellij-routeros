@@ -16,6 +16,9 @@ The plugin is a native IntelliJ Platform language plugin written in Kotlin. The 
 | `schema` | Schema model, loader, application service, value types, PSI ↔ schema context |
 | `completion` | Completion contributor, parameter info |
 | `documentation` | Quick documentation provider |
+| `references` | Variable references, `:set` targets, global index, find usages, rename, Go to Symbol |
+| `inspections` | Local inspections and quick fixes |
+| `intentions` | Intention actions |
 | `injection` | RouterOS injection into script-valued strings, string escaper |
 
 All user-visible strings live in `src/main/resources/messages/RosBundle.properties`.
@@ -60,6 +63,16 @@ after it resolve against it (`RosPsiUtil.resolvedPath`). Context lines are cache
 Strings are `PsiLanguageInjectionHost`s. `RosScriptInjector` injects RouterOS into
 script-valued properties when the string has no interpolation; `RosStringEscaper` decodes
 escapes so the injected fragment is what the router would store.
+
+## References and scopes
+
+`RosScopes.visibleAt` implements the scoping rules: `:local` after its declaration in the
+enclosing block and nested blocks; loop variables (`:foreach k,v`, `:for i`, `:onerror e`)
+inside the command's blocks; `:global` anywhere in the file. `$name` (`RosVariableReference`)
+and `:set name` (`RosSetTargetReference`) resolve locally first, then to `:global`
+declarations in other files via `RosGlobalIndex` (a file-based index of global names).
+References are soft: inspections report unresolved names as weak warnings, because hook scripts
+and callers can provide variables at runtime.
 
 ## Testing
 
