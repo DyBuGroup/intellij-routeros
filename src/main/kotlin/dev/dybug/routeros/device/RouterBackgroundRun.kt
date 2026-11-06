@@ -39,12 +39,16 @@ class RouterBackgroundRun(private val client: RouterRestClient, prefix: String =
             }
             Thread.sleep(pollMillis)
         }
-        // the output file is written when the job ends
-        repeat(10) {
-            client.fileContents(outputFile)?.let { return it }
+        // the output file appears (and is filled) shortly after the job ends; an empty result is
+        // accepted only after it stayed empty for a while
+        var last: String? = null
+        repeat(15) {
+            val contents = client.fileContents(outputFile)
+            if (!contents.isNullOrEmpty()) return contents
+            last = contents
             Thread.sleep(200)
         }
-        return ""
+        return last.orEmpty()
     }
 
     fun stop() {

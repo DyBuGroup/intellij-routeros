@@ -130,14 +130,22 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
             throw com.intellij.openapi.options.ConfigurationException(RosBundle.message("device.settings.names.invalid"))
         }
         profiles.forEach { RouterRestClient.parseBase(it.url) }
-        settings.update(profiles, defaultName.takeIf { it in names } ?: names.firstOrNull().orEmpty())
         // snapshot immutable keys and values now; later UI edits must not change what gets stored
         val keysChanged = profiles.map { RouterCredentials.key(it) }.toSet() != originalKeys
         if (keysChanged && !passwordsLoaded) {
             throw com.intellij.openapi.options.ConfigurationException(RosBundle.message("device.settings.passwords.loading"))
         }
+        // one password per credential key: profiles sharing URL and user must agree
+        val byKey = profiles.groupBy { RouterCredentials.key(it) }
+        val conflict = byKey.entries.firstOrNull { (_, group) -> group.map { passwords[it].orEmpty() }.distinct().size > 1 }
+        if (conflict != null) {
+            throw com.intellij.openapi.options.ConfigurationException(
+                RosBundle.message("device.settings.password.conflict", conflict.key.user, conflict.key.url),
+            )
+        }
+        settings.update(profiles, defaultName.takeIf { it in names } ?: names.firstOrNull().orEmpty())
         if (passwordsLoaded && (passwordsChanged || keysChanged)) {
-            val toStore = profiles.associate { RouterCredentials.key(it) to passwords[it].orEmpty() }
+            val toStore = byKey.mapValues { (_, group) -> passwords[group.first()].orEmpty() }
             val orphaned = originalKeys - toStore.keys
             // one ordered queue for all credential reads and writes
             CREDENTIAL_IO.execute {

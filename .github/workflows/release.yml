@@ -6,14 +6,16 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
     environment: marketplace
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: gradle/actions/wrapper-validation@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
@@ -37,10 +39,33 @@ jobs:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: ./gradlew signPlugin publishPlugin
 
-      - name: GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Release notes
         run: |
           version=${GITHUB_REF_NAME#v}
           ./gradlew -q getChangelog --no-header --project-version="$version" > release-notes.md
-          gh release create "$GITHUB_REF_NAME" build/distributions/*-signed.zip --title "$GITHUB_REF_NAME" --notes-file release-notes.md
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release
+          path: |
+            build/distributions/*-signed.zip
+            release-notes.md
+
+  # only this job can write to the repository, and it runs no build code
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" build/distributions/*-signed.zip --title "$GITHUB_REF_NAME" --notes-file release-notes.md $prerelease

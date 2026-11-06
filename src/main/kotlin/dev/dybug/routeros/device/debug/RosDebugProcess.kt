@@ -179,7 +179,11 @@ class RosDebugProcess(
     override fun startPausing() {
         // a running script can only be paused at a pause point: switch to step mode
         ApplicationManager.getApplication().executeOnPooledThread {
-            runCatching { client.execute(":global ${instrumenter.stepVar}; :set ${instrumenter.stepVar} true") }
+            synchronized(lifecycle) {
+                if (finished || background == null) return@executeOnPooledThread
+                stepping = true
+                runCatching { client.execute(":global ${instrumenter.stepVar}; :set ${instrumenter.stepVar} true") }
+            }
         }
     }
 
