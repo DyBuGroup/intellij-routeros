@@ -99,9 +99,14 @@ class RosFormatterTest : BasePlatformTestCase() {
         val custom = CodeStyle.getSettings(project).getCustomSettings(RosCodeStyleSettings::class.java)
         custom.SPACE_AROUND_OPERATORS = false
         try {
-            assertEquals(":put (\$a and \$b||\$c)\n", format(":put (\$a and \$b || \$c)\n"))
+            assertEquals(":put (\$a and \$b || \$c)\n", format(":put (\$a and \$b || \$c)\n"))
+            assertEquals(":put (1 . 2 . 3 . 4)\n", format(":put (1 . 2 . 3 . 4)\n"))
         } finally {
             custom.SPACE_AROUND_OPERATORS = true
         }
+    }
+
+    fun testWhitespaceAroundEqualsAndInPathsIsKept() {
+        assertEquals("\$f a= b\n/import /flash/x.rsc\n", format("\$f a= b\n/import   /flash/x.rsc\n"))
     }
 }

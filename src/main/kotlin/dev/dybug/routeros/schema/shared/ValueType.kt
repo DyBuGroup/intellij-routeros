@@ -42,11 +42,19 @@ sealed interface ValueType {
     data class Unknown(val raw: String) : ValueType
 
     companion object {
-        fun parse(raw: String): ValueType = try {
-            TypeParser(raw).parseTop()
-        } catch (_: RuntimeException) {
-            Unknown(raw)
+        /** Never throws; overly long or deeply nested strings (e.g. from a synced schema) become [Unknown]. */
+        fun parse(raw: String): ValueType {
+            if (raw.length > MAX_TYPE_LENGTH) return Unknown(raw.take(64))
+            return try {
+                TypeParser(raw).parseTop()
+            } catch (_: RuntimeException) {
+                Unknown(raw)
+            } catch (_: StackOverflowError) {
+                Unknown(raw.take(64))
+            }
         }
+
+        private const val MAX_TYPE_LENGTH = 4096
 
         /** Literal values a user can pick for a type (enum values, yes/no, ubit names…). */
         fun suggestions(type: ValueType): List<String> = when (type) {
@@ -111,7 +119,18 @@ private class TypeParser(private val text: String) {
         return type
     }
 
+    private var depth = 0
+
     private fun parseType(): ValueType {
+        if (++depth > MAX_DEPTH) throw IllegalArgumentException("type nested too deeply")
+        try {
+            return parseTypeInner()
+        } finally {
+            depth--
+        }
+    }
+
+    private fun parseTypeInner(): ValueType {
         skipWs()
         if (peek() == '[') {
             pos++
@@ -309,4 +328,8 @@ private class TypeParser(private val text: String) {
     }
 
     private fun peek(): Char? = text.getOrNull(pos)
+
+    private companion object {
+        const val MAX_DEPTH = 32
+    }
 }

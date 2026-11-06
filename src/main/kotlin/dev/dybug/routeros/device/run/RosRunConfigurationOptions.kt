@@ -6,7 +6,10 @@ enum class RunMode {
     /** Export-style files are imported, scripts are executed. */
     AUTO,
 
-    /** Send the text to `/execute`; nothing is stored on the router. */
+    /**
+     * Run the text as a temporary `/system script ide-run-<random>` in the background (so that the
+     * log tail and Stop keep working); the script and its output file are removed afterwards.
+     */
     EXECUTE,
 
     /** Store as `/system script` (prefix `ide-`) and run it, so the script's own policies apply. */

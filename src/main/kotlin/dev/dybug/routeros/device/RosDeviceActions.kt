@@ -28,8 +28,11 @@ import dev.dybug.routeros.device.validate.RosRemoteValidator
 import dev.dybug.routeros.device.validate.RouterProblem
 import dev.dybug.routeros.psi.RosFile
 
+/** Notification content is HTML; router-provided text is escaped. */
 private fun notify(project: Project, message: String, type: NotificationType) {
-    NotificationGroupManager.getInstance().getNotificationGroup("RouterOS").createNotification(message, type).notify(project)
+    NotificationGroupManager.getInstance().getNotificationGroup("RouterOS")
+        .createNotification(com.intellij.openapi.util.text.StringUtil.escapeXmlEntities(message), type)
+        .notify(project)
 }
 
 private fun background(project: Project, title: String, work: (ProgressIndicator) -> Unit) {
@@ -63,7 +66,7 @@ class RosValidateOnRouterAction : RosFileAction() {
         background(project, RosBundle.message("validate.progress")) {
             val (_, client) = RouterConnections.client(project, null)
             val problems = if (export) RosRemoteValidator.validateExport(client, text) else RosRemoteValidator.validateScript(client, text)
-            ApplicationManager.getApplication().invokeLater {
+            ApplicationManager.getApplication().invokeLater({
                 if (editor != null && !editor.isDisposed) mark(editor, problems)
                 if (problems.isEmpty()) {
                     notify(project, RosBundle.message("validate.ok"), NotificationType.INFORMATION)
@@ -72,7 +75,7 @@ class RosValidateOnRouterAction : RosFileAction() {
                     notify(project, RosBundle.message("validate.problems", problems.size, first.line, first.message), NotificationType.WARNING)
                     psiFile.virtualFile?.let { OpenFileDescriptor(project, it, first.line - 1, first.column - 1).navigate(true) }
                 }
-            }
+            }, project.disposed)
         }
     }
 
@@ -114,10 +117,10 @@ class RosFetchExportAction : AnAction(), DumbAware {
         background(project, RosBundle.message("export.progress")) {
             val (profile, client) = RouterConnections.client(project, null)
             val export = client.execute("/export")
-            ApplicationManager.getApplication().invokeLater {
+            ApplicationManager.getApplication().invokeLater({
                 val file = LightVirtualFile("${profile.name}-export.rsc", RosFileType, export)
                 FileEditorManager.getInstance(project).openFile(file, true)
-            }
+            }, project.disposed)
         }
     }
 }
@@ -130,7 +133,7 @@ class RosCompareWithRouterAction : RosFileAction() {
         background(project, RosBundle.message("export.progress")) {
             val (profile, client) = RouterConnections.client(project, null)
             val export = client.execute("/export")
-            ApplicationManager.getApplication().invokeLater {
+            ApplicationManager.getApplication().invokeLater({
                 val factory = DiffContentFactory.getInstance()
                 val request = SimpleDiffRequest(
                     RosBundle.message("compare.title", file.name, profile.name),
@@ -140,7 +143,7 @@ class RosCompareWithRouterAction : RosFileAction() {
                     RosBundle.message("compare.router", profile.name),
                 )
                 DiffManager.getInstance().showDiff(project, request)
-            }
+            }, project.disposed)
         }
     }
 }

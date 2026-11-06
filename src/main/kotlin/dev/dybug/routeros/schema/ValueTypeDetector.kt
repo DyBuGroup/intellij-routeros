@@ -12,9 +12,12 @@ object ValueTypeDetector {
     private val MAC = Regex("""[0-9A-Fa-f]{2}([:-][0-9A-Fa-f]{2}){5}""")
     private val TIME = Regex("""([0-9]+(w|d|h|m|s|ms|us|ns))+|[0-9]+(:[0-9]{1,2}){1,2}(\.[0-9]+)?|[0-9]+d[0-9]{1,2}:[0-9]{2}:[0-9]{2}|[0-9]+|none|never|unlimited|infinity""")
     private val BOOL = setOf("yes", "no", "true", "false")
+    private const val MAX_VALUE_LENGTH = 128
 
     /** Returns a short problem description, or null when the value is acceptable or cannot be judged. */
     fun problem(value: String, type: ValueType): String? {
+        // long values are not judged: the regexes recurse per repetition
+        if (value.length > MAX_VALUE_LENGTH) return null
         if (value.isEmpty() || value.startsWith("$") || value.startsWith("[") || value.startsWith("(")) return null
         return when (type) {
             is ValueType.Bool -> if (value in BOOL) null else "expected yes or no"

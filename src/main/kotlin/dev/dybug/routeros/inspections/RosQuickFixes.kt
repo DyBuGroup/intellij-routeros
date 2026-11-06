@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import dev.dybug.routeros.RosBundle
+import dev.dybug.routeros.editor.RosDocumentEdits
 import dev.dybug.routeros.psi.RosBlock
 import dev.dybug.routeros.psi.RosBracketCommand
 import dev.dybug.routeros.psi.RosElementFactory
@@ -60,16 +61,14 @@ object RosQuickFixes {
         val indent = document.charsSequence.subSequence(lineStart, offset).takeWhile { it == ' ' || it == '\t' }
         val onlyIndentBefore = document.charsSequence.subSequence(lineStart, offset).isBlank()
         if (onlyIndentBefore) {
-            document.insertString(lineStart, "$indent$text\n")
+            RosDocumentEdits.insert(project, document, lineStart, "$indent$text\n")
         } else {
-            document.insertString(offset, "$text; ")
+            RosDocumentEdits.insert(project, document, offset, "$text; ")
         }
-        PsiDocumentManager.getInstance(project).commitDocument(document)
     }
 
     fun replace(project: Project, element: PsiElement, start: Int, end: Int, text: String) {
         val document = PsiDocumentManager.getInstance(project).getDocument(element.containingFile) ?: return
-        document.replaceString(start, end, text)
-        PsiDocumentManager.getInstance(project).commitDocument(document)
+        RosDocumentEdits.replace(project, document, start, end, text)
     }
 }

@@ -37,21 +37,23 @@ class RosProjectSchemaService(private val project: Project) {
 
     val syncedVersion: String? get() = current().file?.name?.removeSuffix(".json.gz")
 
+    /** Cheap most of the time; a changed file is parsed outside any lock and published atomically. */
     private fun current(): Snapshot {
         val now = System.currentTimeMillis()
         val known = snapshot
         if (known != null && now - checkedAt < RECHECK_MILLIS) return known
+        checkedAt = now
+        val file = syncedFile()
+        val stamp = file?.let { it.lastModified() xor it.length() } ?: 0L
+        if (known != null && known.file == file && known.stamp == stamp) return known
+        val fresh = Snapshot(file, stamp, file?.let(::load))
         synchronized(this) {
-            checkedAt = now
-            val file = syncedFile()
-            val stamp = file?.let { it.lastModified() xor it.length() } ?: 0L
             val previous = snapshot
-            if (previous != null && previous.file == file && previous.stamp == stamp) return previous
-            val fresh = Snapshot(file, stamp, file?.let(::load))
+            if (previous != null && previous.file == fresh.file && previous.stamp == fresh.stamp) return previous
             snapshot = fresh
             if (previous != null) invalidateAnalysis()
-            return fresh
         }
+        return fresh
     }
 
     /** Stores a synced schema: written to a temporary file and moved into place atomically. */

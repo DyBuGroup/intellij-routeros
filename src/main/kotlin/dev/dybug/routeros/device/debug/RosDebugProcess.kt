@@ -46,6 +46,8 @@ class RosDebugProcess(
     private val file: VirtualFile,
     private val handler: RosRunProcessHandler,
     private val console: ExecutionConsole,
+    private val validateBeforeRun: Boolean,
+    private val timeoutMillis: Long,
 ) : XDebugProcess(session) {
     private val token = UUID.randomUUID().toString().replace("-", "").take(8)
     private val instrumenter = RosInstrumenter(token)
@@ -104,12 +106,24 @@ class RosDebugProcess(
     }
 
     private fun run() {
+        var exitCode = 0
         try {
-            val instrumented = ApplicationManager.getApplication().runReadAction(
-                com.intellij.openapi.util.Computable<RosInstrumenter.Result?> {
-                    (PsiManager.getInstance(session.project).findFile(file) as? RosFile)?.let(instrumenter::instrument)
-                },
-            ) ?: return
+            // non-blocking: instrumentation of a large file must not hold up write actions
+            val prepared = com.intellij.openapi.application.ReadAction.nonBlocking<Pair<String, RosInstrumenter.Result>?> {
+                val psi = PsiManager.getInstance(session.project).findFile(file) as? RosFile ?: return@nonBlocking null
+                psi.text to instrumenter.instrument(psi)
+            }.executeSynchronously() ?: return
+            val (original, instrumented) = prepared
+            markUnreachableBreakpoints(instrumented.pauseLines)
+            if (validateBeforeRun) {
+                val problems = dev.dybug.routeros.device.validate.RosRemoteValidator.validateScript(client, original)
+                if (problems.isNotEmpty()) {
+                    handler.print(RosBundle.message("run.console.validation.failed"), ProcessOutputType.STDERR)
+                    problems.forEach { handler.print("${it.message} (line ${it.line} column ${it.column})", ProcessOutputType.STDERR) }
+                    exitCode = 2
+                    return
+                }
+            }
             val run = synchronized(lifecycle) {
                 if (finished) return
                 controller.prepare(breakpointLines())
@@ -120,19 +134,46 @@ class RosDebugProcess(
                     poller = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(::poll, 200, 250, TimeUnit.MILLISECONDS)
                 }
             }
-            val output = run.await(timeoutMillis = 24L * 3600 * 1000) { !finished }
-            output.lineSequence().filter { it.isNotEmpty() }.forEach { handler.print(it) }
-            handler.print(RosBundle.message("run.console.done", 0), ProcessOutputType.SYSTEM)
+            val output = run.await(timeoutMillis) { !finished }
+            output.lineSequence().filter { it.isNotEmpty() }.forEach { line ->
+                val error = dev.dybug.routeros.device.validate.RosRemoteValidator.parseProblems(line).isNotEmpty()
+                if (error) exitCode = 1
+                handler.print(line, if (error) ProcessOutputType.STDERR else ProcessOutputType.STDOUT)
+            }
+            handler.print(RosBundle.message("run.console.done", exitCode), ProcessOutputType.SYSTEM)
         } catch (e: Exception) {
             handler.print(e.message ?: e.javaClass.simpleName, ProcessOutputType.STDERR)
+            exitCode = 1
         } finally {
-            finish()
+            finish(exitCode)
         }
     }
 
+    /** Breakpoints on lines without a pause point (continuation lines, array items…) can never be hit. */
+    private fun markUnreachableBreakpoints(pauseLines: Set<Int>) {
+        val unreachable = synchronized(breakpoints) { breakpoints.filter { it.line !in pauseLines } }
+        unreachable.forEach { session.setBreakpointInvalid(it, RosBundle.message("debug.breakpoint.unreachable")) }
+    }
+
+    /** Never throws: an exception would silently cancel the scheduled poller. */
     private fun poll() {
+        try {
+            pollOnce()
+        } catch (e: com.intellij.openapi.progress.ProcessCanceledException) {
+            throw e
+        } catch (e: Throwable) {
+            handler.print(e.message ?: e.javaClass.simpleName, ProcessOutputType.STDERR)
+        }
+    }
+
+    private fun pollOnce() {
         if (finished) return
         val pause = runCatching { controller.pause() }.getOrNull() ?: return
+        if (pause === RouterDebugController.UNREADABLE) {
+            handler.print(RosBundle.message("debug.unreadable.state"), ProcessOutputType.STDERR)
+            send(step = false)
+            return
+        }
         if (pause.sequence == lastSequence) return
         lastSequence = pause.sequence
         val position = XDebuggerUtil.getInstance().createPosition(file, pause.line - 1) ?: return
@@ -193,7 +234,7 @@ class RosDebugProcess(
     }
 
     /** Stops the job before removing the rendezvous globals, so instrumented code never runs unmanaged. */
-    private fun finish() {
+    private fun finish(exitCode: Int = 0) {
         synchronized(lifecycle) {
             finished = true
             poller?.cancel(false)
@@ -202,7 +243,7 @@ class RosDebugProcess(
             background = null
             controller.cleanUp()
         }
-        handler.finish(0)
+        handler.finish(exitCode)
     }
 
     private class SuspendContext(position: XSourcePosition, variables: JsonObject) : XSuspendContext() {

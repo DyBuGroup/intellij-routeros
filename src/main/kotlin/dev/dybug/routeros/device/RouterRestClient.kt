@@ -51,9 +51,9 @@ class RouterRestClient(
         .build()
 
     /** `GET /rest/system/resource`: version, board name, uptime… */
-    fun resource(): JsonObject = request("GET", "system/resource", null, Duration.ofSeconds(15)).asJsonObject
+    fun resource(): JsonObject = request("GET", "system/resource", null, Duration.ofSeconds(15)) as? JsonObject ?: throw protocol()
 
-    fun version(): String = resource().get("version")?.asString.orEmpty()
+    fun version(): String = guarded { resource().get("version")?.asString }.orEmpty()
 
     /** Runs a script and returns what it printed; runtime errors are appended as `… (line N column M)`. */
     fun execute(script: String, timeout: Duration = Duration.ofSeconds(profile.timeoutSeconds.toLong())): String {
@@ -78,11 +78,12 @@ class RouterRestClient(
      */
     fun fileContents(name: String, maxBytes: Long = 8L * 1024 * 1024): String? {
         val array = request("GET", "file?name=" + encode(name), null, Duration.ofSeconds(30)) as? JsonArray ?: return null
-        val entry = array.firstOrNull()?.asJsonObject ?: return null
-        val size = entry.get("size")?.asString?.toLongOrNull() ?: 0L
-        val contents = entry.get("contents")?.asString.orEmpty()
+        val entry = guarded { array.firstOrNull()?.asJsonObject } ?: return null
+        val size = guarded { entry.get("size")?.asString?.toLongOrNull() } ?: 0L
+        val contents = guarded { entry.get("contents")?.asString }.orEmpty()
+        val tooLarge = RouterException("The router file $name is larger than ${maxBytes / (1024 * 1024)} MB")
+        if (size > maxBytes || contents.length > maxBytes) throw tooLarge
         if (contents.toByteArray().size.toLong() >= size) return contents
-        if (size > maxBytes) throw RouterException("The router file $name is larger than ${maxBytes / (1024 * 1024)} MB")
         val result = StringBuilder()
         var offset = 0L
         while (offset < size) {
@@ -93,9 +94,13 @@ class RouterRestClient(
             }
             val chunk = request("POST", "file/read", body, Duration.ofSeconds(30)) as? JsonArray ?: throw protocol()
             val data = guarded { chunk.firstOrNull()?.asJsonObject?.get("data")?.asString } ?: throw protocol()
-            if (data.isEmpty()) break
+            if (data.isEmpty()) {
+                if (result.isEmpty()) throw RouterException("Could not read $name from the router")
+                break
+            }
             result.append(data)
             offset += data.toByteArray().size
+            if (offset > maxBytes) throw tooLarge
         }
         return result.toString()
     }
@@ -111,7 +116,10 @@ class RouterRestClient(
         val highlight = guarded {
             array.map { it.asJsonObject }.firstOrNull { it.get("type")?.asString == "highlight" }?.get("highlight")?.asString
         } ?: throw protocol()
-        return highlight.split(',')
+        val classes = highlight.split(',')
+        // a partial answer must not look like "no errors"
+        if (classes.size < input.length) throw RouterException("The router's parser returned an incomplete answer")
+        return classes
     }
 
     /** Children of a menu path: `[{name, node-type}]` with node-type dir, cmd, arg or path. */
@@ -121,9 +129,11 @@ class RouterRestClient(
             addProperty("path", path.joinToString(","))
         }
         val array = request("POST", "console/inspect", body, Duration.ofSeconds(30)) as? JsonArray ?: return emptyList()
-        return array.map { it.asJsonObject }
-            .filter { it.get("type")?.asString == "child" }
-            .mapNotNull { obj -> obj.get("name")?.asString?.let { it to (obj.get("node-type")?.asString ?: "") } }
+        return guarded {
+            array.map { it.asJsonObject }
+                .filter { it.get("type")?.asString == "child" }
+                .mapNotNull { obj -> obj.get("name")?.asString?.let { it to (obj.get("node-type")?.asString ?: "") } }
+        }
     }
 
     fun putFile(name: String, contents: String) {
@@ -153,8 +163,10 @@ class RouterRestClient(
     /** Running script jobs: `.id` and the script name (empty for /execute jobs). */
     fun jobs(): List<Pair<String, String>> {
         val array = request("GET", "system/script/job", null, Duration.ofSeconds(15)) as? JsonArray ?: return emptyList()
-        return array.map { it.asJsonObject }.mapNotNull { job ->
-            job.get(".id")?.asString?.let { it to (job.get("script")?.asString ?: "") }
+        return guarded {
+            array.map { it.asJsonObject }.mapNotNull { job ->
+                job.get(".id")?.asString?.let { it to (job.get("script")?.asString ?: "") }
+            }
         }
     }
 
@@ -165,17 +177,19 @@ class RouterRestClient(
     /** Global variables of the user's script environment: name → value as text. */
     fun environment(): Map<String, String> {
         val array = request("GET", "system/script/environment", null, Duration.ofSeconds(15)) as? JsonArray ?: return emptyMap()
-        return array.map { it.asJsonObject }.mapNotNull { entry ->
-            val name = entry.get("name")?.asString ?: return@mapNotNull null
-            name to (entry.get("value")?.takeUnless { it.isJsonNull }?.asString ?: "")
-        }.toMap()
+        return guarded {
+            array.map { it.asJsonObject }.mapNotNull { entry ->
+                val name = entry.get("name")?.asString ?: return@mapNotNull null
+                name to (entry.get("value")?.takeUnless { it.isJsonNull }?.asString ?: "")
+            }.toMap()
+        }
     }
 
     /** Log entries; each map has `.id`, `time`, `topics`, `message`. */
     fun log(): List<Map<String, String>> {
         val array = request("GET", "log?.proplist=.id,time,topics,message", null, Duration.ofSeconds(15)) as? JsonArray
             ?: return emptyList()
-        return array.map { entry -> entry.asJsonObject.entrySet().associate { it.key to it.value.asString } }
+        return guarded { array.map { entry -> entry.asJsonObject.entrySet().associate { it.key to it.value.asString } } }
     }
 
     private fun protocol() = RouterException("Unexpected response from the router")

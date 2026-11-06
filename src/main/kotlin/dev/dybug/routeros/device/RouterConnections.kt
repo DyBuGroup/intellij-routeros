@@ -14,7 +14,7 @@ object RouterConnections {
     fun client(project: Project, profileName: String?): Pair<RouterProfile, RouterRestClient> {
         val profile = RosDeviceSettings.getInstance(project).profile(profileName)
             ?: throw RouterException(RosBundle.message("device.no.profile"))
-        return profile to client(profile, RouterCredentials.password(profile))
+        return profile to client(profile, RouterCredentials.password(project, profile))
     }
 
     fun client(profile: RouterProfile, password: String): RouterRestClient =

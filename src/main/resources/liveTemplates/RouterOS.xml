@@ -199,7 +199,7 @@ $END$" description="Return range of elements or substring. If end position is no
   <template name="export" value="export file=$V1$$V2$$V3$.rsc;$END$" description="Export configuration from current menu and its sub-menus (if present). If file parameter is specified output will be written to file with extension &#x27;.rsc&#x27;, otherwise output will be printed to console." toReformat="false" toShortenFQNames="false">
     <variable name="V1" expression="" defaultValue="&quot;config&quot;" alwaysStopAt="true"/>
     <variable name="V2" expression="" defaultValue="&quot;_&quot;" alwaysStopAt="true"/>
-    <variable name="V3" expression="" defaultValue="&quot;$CURRENT_YEAR$CURRENT_MONTH$CURRENT_DATE$CURRENT_HOUR$CURRENT_MINUTE&quot;" alwaysStopAt="true"/>
+    <variable name="V3" expression="date(&quot;yyyyMMddHHmm&quot;)" defaultValue="" alwaysStopAt="true"/>
     <context>
       <option name="ROUTEROS" value="true"/>
     </context>
@@ -226,7 +226,7 @@ $END$" description="Return range of elements or substring. If end position is no
       <option name="ROUTEROS" value="true"/>
     </context>
   </template>
-  <template name="dowhile" value=":do { $V1$ } while ($END$)" description="Execute commands until given condition is met." toReformat="false" toShortenFQNames="false">
+  <template name="dowhile" value=":do { $V1$ } while=($END$)" description="Execute commands until given condition is met." toReformat="false" toShortenFQNames="false">
     <variable name="V1" expression="" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
     <context>
       <option name="ROUTEROS" value="true"/>

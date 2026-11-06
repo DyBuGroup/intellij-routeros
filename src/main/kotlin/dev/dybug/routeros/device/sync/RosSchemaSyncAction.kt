@@ -36,6 +36,7 @@ class RosSchemaSyncAction : AnAction(), DumbAware {
             ProgressManager.getInstance().run(object : Task.Backgroundable(project, RosBundle.message("sync.progress"), true) {
                 override fun run(indicator: ProgressIndicator) {
                     val group = NotificationGroupManager.getInstance().getNotificationGroup("RouterOS")
+                    fun escaped(text: String?) = com.intellij.openapi.util.text.StringUtil.escapeXmlEntities(text.orEmpty())
                     try {
                         val (profile, client) = RouterConnections.client(project, null)
                         val version = client.version()
@@ -46,13 +47,15 @@ class RosSchemaSyncAction : AnAction(), DumbAware {
                         RosProjectSchemaService.getInstance(project).store(version.substringBefore(' '), nodes)
                         EditorNotifications.getInstance(project).updateAllNotifications()
                         group.createNotification(
-                            RosBundle.message("sync.done", nodes.size(), version, walker.requestCount),
+                            RosBundle.message("sync.done", nodes.size(), escaped(version), walker.requestCount),
                             NotificationType.INFORMATION,
                         ).notify(project)
-                    } catch (e: RouterException) {
-                        group.createNotification(RosBundle.message("sync.failed", e.message.orEmpty()), NotificationType.ERROR).notify(project)
                     } catch (e: java.io.IOException) {
-                        group.createNotification(RosBundle.message("sync.failed", e.message.orEmpty()), NotificationType.ERROR).notify(project)
+                        group.createNotification(RosBundle.message("sync.failed", escaped(e.message)), NotificationType.ERROR).notify(project)
+                    } catch (e: IllegalArgumentException) {
+                        group.createNotification(RosBundle.message("sync.failed", escaped(e.message)), NotificationType.ERROR).notify(project)
+                    } catch (e: IllegalStateException) {
+                        group.createNotification(RosBundle.message("sync.failed", escaped(e.message)), NotificationType.ERROR).notify(project)
                     }
                 }
             })

@@ -22,8 +22,7 @@ import dev.dybug.routeros.psi.impl.RosStringManipulator
 
 private fun replaceRange(project: Project, element: PsiElement, start: Int, end: Int, text: String) {
     val document = PsiDocumentManager.getInstance(project).getDocument(element.containingFile) ?: return
-    document.replaceString(start, end, text)
-    PsiDocumentManager.getInstance(project).commitDocument(document)
+    dev.dybug.routeros.editor.RosDocumentEdits.replace(project, document, start, end, text)
 }
 
 /** `/ip firewall filter` ⇄ `/ip/firewall/filter`. */
@@ -32,7 +31,7 @@ class RosConvertPathStyleIntention : PsiElementBaseIntentionAction() {
 
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean {
         val path = PsiTreeUtil.getParentOfType(element, RosPath::class.java, false) ?: return false
-        if (RosPsiUtil.pathSegments(path).size < 2) return false
+        if (menuAndCommandWords(path, RosPsiUtil.pathSegments(path)) < 2) return false
         text = RosBundle.message(if (usesSpaces(path)) "intention.convert.path.slash" else "intention.convert.path.space")
         return true
     }
@@ -40,9 +39,24 @@ class RosConvertPathStyleIntention : PsiElementBaseIntentionAction() {
     override fun invoke(project: Project, editor: Editor?, element: PsiElement) {
         val path = PsiTreeUtil.getParentOfType(element, RosPath::class.java, false) ?: return
         val segments = RosPsiUtil.pathSegments(path)
+        // words after the command word are positional arguments (`run foo`, `print detail`) and stay separate
+        val count = menuAndCommandWords(path, segments)
+        if (count < 2) return
         val prefix = if (RosPsiUtil.isAbsolute(path)) "/" else ""
         val separator = if (usesSpaces(path)) "/" else " "
-        replaceRange(project, path, path.textRange.startOffset, path.textRange.endOffset, prefix + segments.joinToString(separator))
+        val converted = prefix + segments.take(count).joinToString(separator) +
+            segments.drop(count).joinToString("") { " $it" }
+        replaceRange(project, path, path.textRange.startOffset, path.textRange.endOffset, converted)
+    }
+
+    /** Number of leading words that are menus or the command word, according to the schema. */
+    private fun menuAndCommandWords(path: RosPath, segments: List<String>): Int {
+        val schema = dev.dybug.routeros.schema.RosSchemaService.schema(path.project) ?: return segments.size
+        val command = path.parent as? dev.dybug.routeros.psi.RosCommand ?: return segments.size
+        val base = if (RosPsiUtil.isAbsolute(path)) emptyList() else RosPsiUtil.menuContextAt(command)
+        if (segments.any { it == ".." }) return segments.size
+        val target = schema.resolveCommand(base + segments)
+        return (target.consumed - base.size).coerceIn(0, segments.size)
     }
 
     /** True if any two consecutive path words are separated by whitespace rather than '/'. */
@@ -58,6 +72,8 @@ class RosToggleQuotesIntention : PsiElementBaseIntentionAction() {
 
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean {
         val argument = PsiTreeUtil.getParentOfType(element, RosNamedArgument::class.java) ?: return false
+        // in function and script-command calls quotes decide the type ("10" is a string, 10 a number)
+        if (argument.parent !is dev.dybug.routeros.psi.RosCommand) return false
         val value = RosPsiUtil.argumentValue(argument) ?: return false
         return when {
             value.elementType == RosTypes.WORD -> true.also { text = RosBundle.message("intention.add.quotes") }
@@ -104,6 +120,8 @@ class RosWrapOnErrorIntention : PsiElementBaseIntentionAction() {
         if (candidate.firstChild == null) return null
         // wrapping a declaration in a block would hide the variable from the following statements
         if (candidate is RosDeclaration) return null
+        // a bare menu path selects the menu for the following lines; inside a block it would not
+        if (candidate is dev.dybug.routeros.psi.RosCommand && RosPsiUtil.isMenuContextLine(candidate)) return null
         return candidate
     }
 }

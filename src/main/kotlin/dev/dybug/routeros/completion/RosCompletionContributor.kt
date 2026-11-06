@@ -188,13 +188,19 @@ class RosCompletionContributor : CompletionContributor() {
     }
 
     private fun completeVariables(position: PsiElement, result: CompletionResultSet) {
+        val inString = position.parent?.parent is dev.dybug.routeros.psi.RosString
         for (declaration in RosScopes.visibleAt(position)) {
+            // names other than letters and digits must be written $"name"; inside a string that
+            // would end the string, so they are not offered there
+            val plain = dev.dybug.routeros.psi.RosElementFactory.isPlainName(declaration.name)
+            if (!plain && inString) continue
             val icon = when (declaration.kind) {
                 RosScopes.Kind.FUNCTION_GLOBAL, RosScopes.Kind.FUNCTION_LOCAL -> AllIcons.Nodes.Function
                 else -> AllIcons.Nodes.Variable
             }
             result.addElement(
-                LookupElementBuilder.create(declaration.name)
+                LookupElementBuilder.create(if (plain) declaration.name else dev.dybug.routeros.psi.RosElementFactory.nameText(declaration.name))
+                    .withLookupString(declaration.name)
                     .withPresentableText("$" + declaration.name)
                     .withIcon(icon)
                     .withTypeText(declaration.kind.name.lowercase().replace('_', ' ')),

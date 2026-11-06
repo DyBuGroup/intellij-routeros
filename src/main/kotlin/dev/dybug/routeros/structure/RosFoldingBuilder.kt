@@ -76,16 +76,21 @@ class RosFoldingBuilder : FoldingBuilderEx(), DumbAware {
             runEnd = null
         }
         var child = file.firstChild
+        var lineBreaks = 0
         while (child != null) {
             when {
                 child is PsiComment -> {
                     if (runStart == null) runStart = child
                     runEnd = child
+                    lineBreaks = 0
                 }
-                child is PsiWhiteSpace || child.node.elementType == RosTypes.NEWLINE -> {
-                    if (child.text.count { it == '\n' } > 1) flush()
+                // each line break is its own NEWLINE token: two in a row mean a blank line
+                child.node.elementType == RosTypes.NEWLINE -> if (++lineBreaks > 1) flush()
+                child is PsiWhiteSpace -> Unit
+                else -> {
+                    flush()
+                    lineBreaks = 0
                 }
-                else -> flush()
             }
             child = child.nextSibling
         }

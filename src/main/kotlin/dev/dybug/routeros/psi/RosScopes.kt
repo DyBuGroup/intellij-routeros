@@ -10,10 +10,11 @@ import com.intellij.psi.util.PsiTreeUtil
  * Variable scoping rules:
  * - `:local` is visible after its declaration in the enclosing block and nested blocks;
  * - loop/handler variables (`:foreach x`, `:for i`, `:onerror e`) are visible in the command's `do={…}` block;
- * - `:global` is visible in the whole file (and project-wide, see the global index).
+ * - `:global` is visible after its declaration anywhere in the file (it ignores blocks), and
+ *   project-wide through the global index.
  *
- * Declarations are collected once per file modification into [ScopeIndex], so each lookup costs
- * O(nesting depth × declarations with that name) instead of re-walking the file.
+ * Declarations are collected once per file modification into [ScopeIndex]; a name lookup is a
+ * binary search per enclosing scope.
  */
 object RosScopes {
     enum class Kind { LOCAL, GLOBAL, LOOP, FUNCTION_LOCAL, FUNCTION_GLOBAL }
@@ -23,20 +24,26 @@ object RosScopes {
     private class Entry(val offset: Int, val declaration: Declaration)
 
     private class ScopeIndex(
-        /** scope (block, bracket substitution or file) → declarations that are its direct statements, by offset */
+        /** scope (block, bracket substitution or file) → its direct declarations, in offset order */
         val byScope: Map<PsiElement, List<Entry>>,
-        val globals: List<Declaration>,
+        /** scope → name → that scope's declarations of the name, in offset order */
+        val byScopeAndName: Map<PsiElement, Map<String, List<Entry>>>,
+        /** `:global` declarations of the file in offset order; `:global` ignores blocks */
+        val globals: List<Entry>,
+        val globalsByName: Map<String, List<Entry>>,
     )
 
     private fun index(file: PsiFile): ScopeIndex = CachedValuesManager.getCachedValue(file) {
         val byScope = HashMap<PsiElement, MutableList<Entry>>()
-        val globals = mutableListOf<Declaration>()
+        val globals = mutableListOf<Entry>()
         for (decl in PsiTreeUtil.findChildrenOfAnyType(file, RosLocalDecl::class.java, RosGlobalDecl::class.java)) {
             val declaration = declaration(decl) ?: continue
-            byScope.getOrPut(decl.parent) { mutableListOf() } += Entry(decl.textRange.startOffset, declaration)
-            if (decl is RosGlobalDecl) globals += declaration
+            val entry = Entry(decl.textRange.startOffset, declaration)
+            byScope.getOrPut(decl.parent) { mutableListOf() } += entry
+            if (decl is RosGlobalDecl) globals += entry
         }
-        CachedValueProvider.Result.create(ScopeIndex(byScope, globals), file)
+        val byScopeAndName = byScope.mapValues { (_, entries) -> entries.groupBy { it.declaration.name } }
+        CachedValueProvider.Result.create(ScopeIndex(byScope, byScopeAndName, globals, globals.groupBy { it.declaration.name }), file)
     }
 
     /** Declarations visible at [place], innermost first; each name appears once. */
@@ -47,23 +54,56 @@ object RosScopes {
             false
         }
         val file = place.containingFile ?: return result.values.toList()
-        for (global in index(file).globals) result.putIfAbsent(global.name, global)
+        val offset = place.textRange.startOffset
+        for (global in index(file).globals) {
+            if (global.offset < offset) result.putIfAbsent(global.declaration.name, global.declaration)
+        }
         return result.values.toList()
     }
 
-    /** The innermost declaration of [name] visible at [place], or null. */
+    /** The innermost declaration of [name] visible at [place], or null. Cost: O(depth × log n). */
     fun find(place: PsiElement, name: String): Declaration? {
-        var found: Declaration? = null
-        walk(place) { declaration ->
-            if (declaration.name == name) found = declaration
-            found != null
-        }
-        found?.let { return it }
         val file = place.containingFile ?: return null
-        return index(file).globals.firstOrNull { it.name == name }
+        val index = index(file)
+        var child: PsiElement = place
+        var scope: PsiElement? = place.parent
+        while (scope != null) {
+            index.byScopeAndName[scope]?.get(name)?.let { entries ->
+                lastBefore(entries, child.textRange.startOffset)?.let { return it.declaration }
+            }
+            if (isLoopBody(scope, child) && name in loopVariableNames(scope)) {
+                loopVariable(scope)?.let { return Declaration(name, it.element, Kind.LOOP) }
+            }
+            if (scope is PsiFile) break
+            child = scope
+            scope = scope.parent
+        }
+        return index.globalsByName[name]?.let { lastBefore(it, place.textRange.startOffset) }?.declaration
     }
 
-    /** Visits declarations from the innermost scope outwards; stops when [visitor] returns true. */
+    /** `:global` declarations of [name] later in the file than [place] (used before declared). */
+    fun declaredLater(place: PsiElement, name: String): Boolean {
+        val file = place.containingFile ?: return false
+        return index(file).globalsByName[name]?.any { it.offset > place.textRange.startOffset } == true
+    }
+
+    private fun lastBefore(entries: List<Entry>, offset: Int): Entry? {
+        var low = 0
+        var high = entries.size - 1
+        var found: Entry? = null
+        while (low <= high) {
+            val mid = (low + high) ushr 1
+            if (entries[mid].offset < offset) {
+                found = entries[mid]
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+        return found
+    }
+
+    /** Visits declarations from the innermost scope outwards (completion); stops when [visitor] returns true. */
     private fun walk(place: PsiElement, visitor: (Declaration) -> Boolean) {
         val file = place.containingFile ?: return
         val index = index(file)

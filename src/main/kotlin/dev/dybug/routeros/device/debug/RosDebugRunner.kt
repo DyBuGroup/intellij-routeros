@@ -36,9 +36,12 @@ class RosDebugRunner : GenericProgramRunner<com.intellij.execution.configuration
         val project = environment.project
         val file = LocalFileSystem.getInstance().findFileByPath(configuration.scriptPath)
             ?: throw ExecutionException(RosBundle.message("run.error.file.missing", configuration.scriptPath))
+        if (configuration.mode == dev.dybug.routeros.device.run.RunMode.IMPORT) {
+            throw ExecutionException(RosBundle.message("debug.import.unsupported"))
+        }
         FileDocumentManager.getInstance().saveAllDocuments()
-        val client: RouterRestClient = ProgressManager.getInstance().runProcessWithProgressSynchronously<RouterRestClient, Exception>(
-            { RouterConnections.client(project, configuration.profile).second },
+        val (profile, client) = ProgressManager.getInstance().runProcessWithProgressSynchronously<Pair<dev.dybug.routeros.device.RouterProfile, RouterRestClient>, Exception>(
+            { RouterConnections.client(project, configuration.profile) },
             RosBundle.message("debug.connecting"), true, project,
         )
         val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
@@ -47,7 +50,12 @@ class RosDebugRunner : GenericProgramRunner<com.intellij.execution.configuration
         val handler = RosRunProcessHandler { process.stop() }
         console.attachToProcess(handler)
         val session = XDebuggerManager.getInstance(project).startSession(environment, object : XDebugProcessStarter() {
-            override fun start(session: XDebugSession): XDebugProcess = RosDebugProcess(session, client, file, handler, console).also { process = it }
+            override fun start(session: XDebugSession): XDebugProcess = RosDebugProcess(
+                session, client, file, handler, console,
+                validateBeforeRun = configuration.validateBeforeRun,
+                // a session may sit at a breakpoint for a while; the router side gives up after an hour
+                timeoutMillis = maxOf(profile.timeoutSeconds * 1000L, 3_600_000L),
+            ).also { process = it }
         })
         ApplicationManager.getApplication().invokeLater { handler.startNotify() }
         return session.runContentDescriptor

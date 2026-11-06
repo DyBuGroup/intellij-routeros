@@ -31,6 +31,10 @@ class RosUndefinedVariableInspection : RosInspectionBase() {
         if (name.isEmpty() || name.all(Char::isDigit) || name in HOOK_VARIABLES) return
         if (reference.resolveLocally() != null) return
         val range = reference.rangeInElement
+        if (dev.dybug.routeros.psi.RosScopes.declaredLater(element, name)) {
+            holder.registerProblem(element, RosBundle.message("inspection.declared.later", name), ProblemHighlightType.WARNING, range)
+            return
+        }
         val globals = reference.multiResolve(false).mapNotNull { it.element as? RosDeclaration }.filter { it.isGlobal }
         if (globals.isNotEmpty()) {
             holder.registerProblem(

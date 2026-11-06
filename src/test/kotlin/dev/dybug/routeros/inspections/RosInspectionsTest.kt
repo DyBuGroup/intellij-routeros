@@ -66,4 +66,8 @@ class RosInspectionsTest : BasePlatformTestCase() {
     fun testSetTargets() = check(
         ":local a 1\n:set a 2\n:put \$a\n:set <warning descr=\"Variable 'b' must be declared with :local or :global before :set\">b</warning> 3\n:local e ({})\n:put \$e\n",
     )
+
+    fun testGlobalUsedBeforeDeclaration() = check(
+        ":put \$<warning descr=\"Variable 'x' is used before its ':global' declaration\">x</warning>\n:global x 1\n:put \$x\n",
+    )
 }

@@ -121,4 +121,24 @@ class RouterLiveTest : BasePlatformTestCase() {
             run.cleanUp()
         }
     }
+
+    fun testBreakpointInsideLocalFunction() {
+        val client = client ?: return
+        val file = myFixture.configureByText("f.rsc", ":local f do={\n  :local r (\$1 * 2)\n  :return \$r\n}\n:put [\$f 21]\n") as RosFile
+        val instrumenter = RosInstrumenter("fn" + System.nanoTime().toString().takeLast(6))
+        val controller = RouterDebugController(client, instrumenter)
+        controller.prepare(listOf(2))
+        val run = RouterBackgroundRun(client, "ide-dbg-test")
+        run.start(instrumenter.instrument(file).text)
+        try {
+            val pause = waitForPause(controller)
+            assertEquals(3, pause.line)
+            assertEquals(42, pause.variables.get("r").asInt)
+            controller.resume(step = false)
+            assertEquals("42", run.await(30_000).trim())
+        } finally {
+            controller.cleanUp()
+            run.cleanUp()
+        }
+    }
 }

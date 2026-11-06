@@ -24,10 +24,8 @@ class RosSetTargetReference(element: RosSetStatement, range: TextRange, private 
         return declaration.element.parent as? RosDeclaration ?: declaration.element
     }
 
-    override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
-        resolveLocally()?.let { return arrayOf(PsiElementResolveResult(it)) }
-        return RosGlobalIndex.declarations(element.project, variableName).map { PsiElementResolveResult(it) }.toTypedArray()
-    }
+    override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> =
+        com.intellij.psi.impl.source.resolve.ResolveCache.getInstance(element.project).resolveWithCaching(this, RESOLVER, false, incompleteCode)
 
     override fun handleElementRename(newElementName: String): PsiElement {
         target.replace(RosElementFactory.declarationName(element.project, newElementName))
@@ -37,6 +35,11 @@ class RosSetTargetReference(element: RosSetStatement, range: TextRange, private 
     override fun getVariants(): Array<Any> = emptyArray()
 
     companion object {
+        private val RESOLVER = com.intellij.psi.impl.source.resolve.ResolveCache.PolyVariantResolver<RosSetTargetReference> { ref, _ ->
+            ref.resolveLocally()?.let { return@PolyVariantResolver arrayOf(PsiElementResolveResult(it)) }
+            RosGlobalIndex.declarations(ref.element.project, ref.variableName).map { PsiElementResolveResult(it) }.toTypedArray()
+        }
+
         fun create(statement: RosSetStatement): RosSetTargetReference? {
             val target = RosPsiUtil.declaredNameElement(statement) ?: return null
             val range = if (target is RosString) RosPsiUtil.contentRange(target) else TextRange(0, target.textLength)

@@ -31,7 +31,10 @@ class RosRunSettingsEditor(private val project: Project) : SettingsEditor<RosRun
         profileCombo.removeAllItems()
         profileCombo.addItem("")
         RosDeviceSettings.getInstance(project).profiles.forEach { profileCombo.addItem(it.name) }
-        profileCombo.selectedItem = configuration.profile.orEmpty()
+        // keep a reference to a removed profile visible instead of silently switching to the default router
+        val selected = configuration.profile.orEmpty()
+        if ((0 until profileCombo.itemCount).none { profileCombo.getItemAt(it) == selected }) profileCombo.addItem(selected)
+        profileCombo.selectedItem = selected
         fileField.text = configuration.scriptPath
         modeCombo.selectedItem = configuration.mode
         validateCheck.isSelected = configuration.validateBeforeRun

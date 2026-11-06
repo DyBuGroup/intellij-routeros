@@ -86,12 +86,11 @@ class RosFormattingBlock(
         }
         spacingBuilder.getSpacing(this, child1, child2)?.let { return it }
         return when {
-            left.elementType == RosTypes.EQ || right.elementType == RosTypes.EQ ->
-                if (parentType == RosTypes.NAMED_ARGUMENT) Spacing.createSpacing(0, 0, 0, true, keepBlank) else keep()
-            parentType == RosTypes.PATH -> when {
-                left.elementType == RosTypes.SLASH || right.elementType == RosTypes.SLASH -> Spacing.createSpacing(0, 0, 0, true, keepBlank)
-                else -> Spacing.createSpacing(1, 1, 0, true, keepBlank)
-            }
+            // `a= b` is an empty `a` plus a positional `b`, and `a =b` is an error: whitespace around
+            // `=` is significant, so it is never added or removed
+            left.elementType == RosTypes.EQ || right.elementType == RosTypes.EQ -> keep()
+            // a space in a path separates words (`/import /flash/x.rsc`); only runs of spaces shrink
+            parentType == RosTypes.PATH -> Spacing.createSpacing(1, 1, 0, true, keepBlank)
             parentType == RosTypes.BLOCK && left.elementType == RosTypes.LBRACE && right.elementType == RosTypes.RBRACE ->
                 Spacing.createSpacing(0, 1, 0, true, keepBlank)
             parentType == RosTypes.BLOCK && (left.elementType == RosTypes.LBRACE || right.elementType == RosTypes.RBRACE) -> {

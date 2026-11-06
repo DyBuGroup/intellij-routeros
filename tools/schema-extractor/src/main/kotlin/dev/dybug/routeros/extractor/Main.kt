@@ -73,7 +73,15 @@ private fun load(source: String, cacheDir: File, refresh: Boolean): String {
     response.body().use { body ->
         check(response.statusCode() == 200) { "GET $source returned HTTP ${response.statusCode()}" }
         check(response.uri().scheme == "https") { "redirected to a non-HTTPS URL: ${response.uri()}" }
-        val bytes = body.readNBytes((MAX_SOURCE_BYTES + 1).toInt())
+        // the request timeout covers only the headers; close the stream if the body stalls
+        val watchdog = java.util.Timer(true).apply { schedule(object : java.util.TimerTask() {
+            override fun run() { runCatching { body.close() } }
+        }, 10 * 60 * 1000L) }
+        val bytes = try {
+            body.readNBytes((MAX_SOURCE_BYTES + 1).toInt())
+        } finally {
+            watchdog.cancel()
+        }
         check(bytes.size <= MAX_SOURCE_BYTES) { "response from $source exceeds $MAX_SOURCE_BYTES bytes" }
         val text = String(bytes, Charsets.UTF_8)
         cached.writeText(text)

@@ -30,12 +30,18 @@ class RouterDebugController(private val client: RouterRestClient, val instrument
         if (environment[instrumenter.pauseVar] != "true") return null
         val state = environment[instrumenter.stateVar].orEmpty()
         return try {
-            val json = JsonParser.parseString(state).asJsonObject
+            val json = JsonParser.parseString(state) as? JsonObject ?: return UNREADABLE
             // :serialize writes an empty array as [] rather than {}
             val variables = json.get("vars") as? JsonObject ?: JsonObject()
             Pause(json.get("seq")?.asLong ?: 0L, json.get("line").asInt, variables)
         } catch (e: RuntimeException) {
-            if (e is JsonSyntaxException || e is IllegalStateException || e is NullPointerException || e is UnsupportedOperationException) null else throw e
+            if (e is JsonSyntaxException || e is IllegalStateException || e is NullPointerException ||
+                e is UnsupportedOperationException || e is NumberFormatException
+            ) {
+                UNREADABLE
+            } else {
+                throw e
+            }
         }
     }
 
@@ -51,6 +57,11 @@ class RouterDebugController(private val client: RouterRestClient, val instrument
         runCatching {
             client.execute("/system script environment remove [find where name~\"^RosDbg${instrumenter.token}\"]")
         }
+    }
+
+    companion object {
+        /** The script is paused but its state could not be read (e.g. :serialize failed). */
+        val UNREADABLE = Pause(-1, 0, JsonObject())
     }
 
     /** 0-based editor lines → `,1,5,` (1-based) as checked by the pause points. */

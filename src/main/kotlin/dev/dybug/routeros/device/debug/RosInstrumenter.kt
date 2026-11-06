@@ -83,7 +83,8 @@ class RosInstrumenter(val token: String) {
     private fun isCodeBlock(block: RosBlock): Boolean {
         val direct = when (val parent = block.parent) {
             is RosNamedArgument -> isCodeArgument(parent)
-            is RosScriptCommand -> parent.firstChild?.text in setOf(":do", ":onerror", ":execute")
+            // :execute runs its block as a separate background job: it must not share our pause state
+            is RosScriptCommand -> parent.firstChild?.text in setOf(":do", ":onerror")
             // a bare block statement parses as a command whose only argument is the block
             is RosCommand -> parent.path == null && RosPsiUtil.arguments(parent).singleOrNull() === block
             else -> false
@@ -101,7 +102,8 @@ class RosInstrumenter(val token: String) {
         val name = RosPsiUtil.argumentName(argument)
         val owner = argument.parent
         return when {
-            owner is dev.dybug.routeros.psi.RosGlobalDecl -> false
+            owner is dev.dybug.routeros.psi.RosGlobalDecl || owner is dev.dybug.routeros.psi.RosSetStatement -> false
+            owner is RosScriptCommand && owner.firstChild?.text == ":execute" -> false
             name == "in" -> owner is RosScriptCommand && owner.firstChild?.text == ":onerror"
             else -> name in CODE_ARGUMENTS
         }
@@ -130,10 +132,14 @@ class RosInstrumenter(val token: String) {
         }
         val state = "(\"{\\\"seq\\\":\" . \$$sequenceVar . \",\\\"line\\\":$number,\\\"vars\\\":\" . " +
             "[:serialize to=json value=({$values})] . \"}\")"
-        // globals are redeclared inside the pause so that it also works within function bodies
-        return ":if (\$$stepVar or [:find \$$breakpointsVar \",$number,\"] >= 0) do={ " +
+        // globals are redeclared at every pause point so that it also works within function bodies;
+        // the wait gives up after an hour so that a lost IDE never leaves the job waiting forever
+        return ":global $stepVar; :global $breakpointsVar; " +
+            ":if (\$$stepVar or [:find \$$breakpointsVar \",$number,\"] >= 0) do={ " +
             ":global $pauseVar; :global $stateVar; :global $sequenceVar; :set $sequenceVar (\$$sequenceVar + 1); " +
-            ":set $stateVar $state; :set $pauseVar true; :while (\$$pauseVar) do={ :delay 100ms } }; "
+            ":set $stateVar $state; :set $pauseVar true; :local rosDbgWait 0; " +
+            ":while (\$$pauseVar) do={ :delay 100ms; :set rosDbgWait (\$rosDbgWait + 1); " +
+            ":if (\$rosDbgWait > $MAX_WAIT_TICKS) do={ :set $pauseVar false } } }; "
     }
 
     private class LineIndex(text: String) {
@@ -150,6 +156,7 @@ class RosInstrumenter(val token: String) {
 
     private companion object {
         const val MAX_VARIABLES = 50
+        const val MAX_WAIT_TICKS = 36_000
         val CODE_ARGUMENTS = setOf("do", "else", "on-error", "command")
     }
 }

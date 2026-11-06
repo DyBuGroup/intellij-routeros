@@ -38,19 +38,22 @@ class RosFormattingModelBuilder : FormattingModelBuilder {
             val custom = settings.getCustomSettings(RosCodeStyleSettings::class.java)
             val common = settings.getCommonSettings(RosLanguage)
             val keepBlank = common.KEEP_BLANK_LINES_IN_CODE
+            // without the option existing spaces are kept: removing them could merge tokens
+            // (`1 . 2 . 3 . 4` would become the IP address `1.2.3.4`)
             val operatorSpaces = if (custom.SPACE_AROUND_OPERATORS) 1 else 0
+            val operatorMax = if (custom.SPACE_AROUND_OPERATORS) 1 else Int.MAX_VALUE
             return SpacingBuilder(settings, RosLanguage)
                 .around(WORD_OPERATORS).spacing(1, Int.MAX_VALUE, 0, true, keepBlank)
                 .around(RosTypes.ARROW).spacing(0, 0, 0, true, keepBlank)
                 .before(RosTypes.SEMICOLON).spacing(0, 0, 0, true, keepBlank)
                 .after(RosTypes.SEMICOLON).spacing(1, 1, 0, true, keepBlank)
                 .before(RosTypes.COMMENT).spacing(1, Int.MAX_VALUE, 0, true, keepBlank)
-                .aroundInside(BINARY_OPERATORS, RosTypes.PAREN_EXPR).spacing(operatorSpaces, operatorSpaces, 0, true, keepBlank)
+                .aroundInside(BINARY_OPERATORS, RosTypes.PAREN_EXPR).spacing(operatorSpaces, operatorMax, 0, true, keepBlank)
                 .aroundInside(BINARY_OPERATORS, TokenSet.create(
                     RosTypes.OR_EXPR, RosTypes.AND_EXPR, RosTypes.MATCH_EXPR, RosTypes.COMPARE_EXPR, RosTypes.APPLY_EXPR,
                     RosTypes.CONCAT_EXPR, RosTypes.BIT_OR_EXPR, RosTypes.BIT_XOR_EXPR, RosTypes.BIT_AND_EXPR,
                     RosTypes.SHIFT_EXPR, RosTypes.ADD_EXPR, RosTypes.MUL_EXPR,
-                )).spacing(operatorSpaces, operatorSpaces, 0, true, keepBlank)
+                )).spacing(operatorSpaces, operatorMax, 0, true, keepBlank)
         }
     }
 }

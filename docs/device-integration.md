@@ -35,7 +35,7 @@ scripts also needs `write` plus whatever policies the scripts themselves use:
 | Mode | What happens |
 |------|--------------|
 | AUTO | Export-style files (starting with a menu path such as `/ip address`) are imported, other files executed |
-| EXECUTE | `POST /rest/execute` with the file text; output appears when the script ends; nothing is stored |
+| EXECUTE | Stored as a temporary `/system script ide-run-<random>`, run in the background and removed afterwards (output appears when the script ends). If the IDE dies mid-run, the temporary script and `ide-run-*-out.txt` can remain on the router; delete them by hand |
 | UPLOAD_AND_RUN | Stored as `/system script ide-<name>` and run with `/system script run`; removed afterwards unless *keep* is set; *Stop* removes the job |
 | IMPORT | Uploaded as a file and applied with `/import verbose=yes`; the file is deleted afterwards |
 

@@ -44,7 +44,7 @@ class RosSurroundDescriptor : SurroundDescriptor {
             val end = elements.last().textRange.endOffset
             val document = editor.document
             val text = document.getText(TextRange(start, end)) + if (endsWithComment(elements)) "\n" else ""
-            val wrapped = wrap(text)
+            val wrapped = RosDocumentEdits.forDocument(document, wrap(text))
             document.replaceString(start, end, wrapped)
             PsiDocumentManager.getInstance(project).commitDocument(document)
             return TextRange.from(start + wrapped.length, 0)

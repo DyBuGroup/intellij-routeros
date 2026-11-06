@@ -28,6 +28,8 @@ private fun checkedArguments(command: RosCommand, schema: RosSchema): Map<String
     return schema.argumentsOf(target).takeIf { it.isNotEmpty() }
 }
 
+private const val MAX_SUGGESTION_LENGTH = 64
+
 class RosUnknownPropertyInspection : RosInspectionBase() {
     override fun visit(element: PsiElement, holder: ProblemsHolder) {
         if (element !is RosNamedArgument) return
@@ -38,9 +40,15 @@ class RosUnknownPropertyInspection : RosInspectionBase() {
         val arguments = checkedArguments(command, schema) ?: return
         val name = key.text
         if (name in arguments || name.contains('.') || name in schema.builtins.universalArguments) return
+        if (name.length > MAX_SUGGESTION_LENGTH) {
+            holder.registerProblem(key, RosBundle.message("inspection.unknown.property", name.take(40)), ProblemHighlightType.WEAK_WARNING)
+            return
+        }
         val menuPath = RosPsiUtil.resolvedPath(command).dropLast(1).joinToString("/")
         if ("$menuPath:$name" in RosDeprecatedPropertyInspection.V6_REPLACEMENTS) return
-        val suggestion = arguments.keys.filter { StringUtil.commonPrefixLength(it, name) >= 2 || distance(it, name) <= 2 }
+        val suggestion = arguments.keys
+            .filter { it.length <= MAX_SUGGESTION_LENGTH && kotlin.math.abs(it.length - name.length) <= 3 }
+            .filter { StringUtil.commonPrefixLength(it, name) >= 2 || distance(it, name) <= 2 }
             .minByOrNull { distance(it, name) }
             ?.takeIf { distance(it, name) <= maxOf(2, name.length / 3) }
         val fixes = listOfNotNull(suggestion?.let { RosQuickFixes.ReplaceText("fix.rename.property", it, it) })
@@ -50,6 +58,7 @@ class RosUnknownPropertyInspection : RosInspectionBase() {
     }
 
     private fun distance(a: String, b: String): Int {
+        com.intellij.openapi.progress.ProgressManager.checkCanceled()
         val dp = IntArray(b.length + 1) { it }
         for (i in 1..a.length) {
             var previous = dp[0]

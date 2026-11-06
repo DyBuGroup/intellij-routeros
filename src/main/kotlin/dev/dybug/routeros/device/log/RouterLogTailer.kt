@@ -21,12 +21,18 @@ class RouterLogTailer(
     private var lastId = -1L
     private var future: ScheduledFuture<*>? = null
     private var failures = 0
+    private var initialised = true
 
     /** Starts after the newest current entry, so only new messages are shown. */
     fun start(showExisting: Int = 0) {
-        val entries = runCatching { client.log() }.getOrElse { emptyList() }
-        entries.takeLast(showExisting).forEach(::emit)
-        lastId = entries.maxOfOrNull { id(it) } ?: -1L
+        val entries = runCatching { client.log() }.getOrNull()
+        if (entries == null) {
+            // the first successful poll only sets the cursor, so old entries are not shown as new
+            initialised = false
+        } else {
+            entries.takeLast(showExisting).forEach(::emit)
+            lastId = entries.maxOfOrNull { id(it) } ?: -1L
+        }
         future = AppExecutorUtil.getAppScheduledExecutorService()
             .scheduleWithFixedDelay(::poll, intervalMillis, intervalMillis, TimeUnit.MILLISECONDS)
     }
@@ -43,6 +49,11 @@ class RouterLogTailer(
     private fun poll() {
         try {
             val entries = client.log()
+            if (!initialised) {
+                lastId = entries.maxOfOrNull { id(it) } ?: -1L
+                initialised = true
+                return
+            }
             // the router restarted or the log was cleared: ids start over
             val newest = entries.maxOfOrNull { id(it) } ?: lastId
             if (newest < lastId) lastId = -1L

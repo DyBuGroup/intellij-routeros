@@ -361,9 +361,11 @@ EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
 // \"...\" nested inside $( ... ) / $[ ... ] interpolation
 <ESC_STRING> {
   \\ \"                  { pop(); return STRING_END; }
+  "$" {VAR_NAME}         { return DOLLAR_NAME; }
   \\ [^\"]               { return STRING_ESCAPE; }
   \\                     { return STRING_INVALID_ESCAPE; }
-  [^\\]+                 { return STRING_TEXT; }
+  "$"                    { return STRING_TEXT; }
+  [^\\$]+                { return STRING_TEXT; }
 }
 
 [^]                      { return TokenType.BAD_CHARACTER; }
