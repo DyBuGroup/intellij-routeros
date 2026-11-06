@@ -88,4 +88,37 @@ class RouterLiveTest : BasePlatformTestCase() {
             run.cleanUp()
         }
     }
+
+    fun testLargeOutputIsReadInChunks() {
+        val client = client ?: return
+        val run = RouterBackgroundRun(client)
+        try {
+            run.start(":for i from=1 to=1500 do={ :put \"line \$i 0123456789abcdef\" }")
+            val lines = run.await(60_000).lines().filter { it.isNotBlank() }
+            assertEquals(1500, lines.size)
+            assertEquals("line 1500 0123456789abcdef", lines.last().trim())
+        } finally {
+            run.cleanUp()
+        }
+    }
+
+    fun testPauseBeforeAnyVariable() {
+        val client = client ?: return
+        val file = myFixture.configureByText("e.rsc", ":put 1\n") as RosFile
+        val instrumenter = RosInstrumenter("empty" + System.nanoTime().toString().takeLast(6))
+        val controller = RouterDebugController(client, instrumenter)
+        controller.prepare(listOf(0))
+        val run = RouterBackgroundRun(client, "ide-dbg-test")
+        run.start(instrumenter.instrument(file).text)
+        try {
+            val pause = waitForPause(controller)
+            assertEquals(1, pause.line)
+            assertEquals(0, pause.variables.size())
+            controller.resume(step = false)
+            assertEquals("1", run.await(30_000).trim())
+        } finally {
+            controller.cleanUp()
+            run.cleanUp()
+        }
+    }
 }

@@ -21,10 +21,9 @@ class RosRunSettingsEditor(private val project: Project) : SettingsEditor<RosRun
     private val keepCheck = JBCheckBox(RosBundle.message("run.editor.keep"))
 
     init {
-        @Suppress("DEPRECATION")
         fileField.addBrowseFolderListener(
-            RosBundle.message("run.editor.file"), null, project,
-            FileChooserDescriptorFactory.createSingleFileDescriptor("rsc"),
+            project,
+            FileChooserDescriptorFactory.createSingleFileDescriptor("rsc").withTitle(RosBundle.message("run.editor.file")),
         )
     }
 

@@ -7,7 +7,6 @@ import com.intellij.execution.process.ProcessOutputType
 import com.intellij.execution.ui.ExecutionConsole
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.concurrency.AppExecutorUtil
@@ -57,7 +56,14 @@ class RosDebugProcess(
     private var poller: ScheduledFuture<*>? = null
 
     @Volatile
-    private var lastPause: RouterDebugController.Pause? = null
+    private var lastSequence = -1L
+
+    /** True after Step commands until the next pause: such pauses are not breakpoint hits. */
+    @Volatile
+    private var stepping = false
+
+    /** Startup and teardown are serialized so that Stop never races with uploading or starting the job. */
+    private val lifecycle = Any()
 
     @Volatile
     private var finished = false
@@ -99,14 +105,21 @@ class RosDebugProcess(
 
     private fun run() {
         try {
-            val instrumented = ReadAction.compute<RosInstrumenter.Result?, RuntimeException> {
-                (PsiManager.getInstance(session.project).findFile(file) as? RosFile)?.let(instrumenter::instrument)
-            } ?: return
-            controller.prepare(breakpointLines())
-            // a background job keeps the REST service free for polling and resume calls
-            val run = dev.dybug.routeros.device.RouterBackgroundRun(client, "ide-dbg").also { background = it }
-            run.start(instrumented.text)
-            poller = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(::poll, 200, 250, TimeUnit.MILLISECONDS)
+            val instrumented = ApplicationManager.getApplication().runReadAction(
+                com.intellij.openapi.util.Computable<RosInstrumenter.Result?> {
+                    (PsiManager.getInstance(session.project).findFile(file) as? RosFile)?.let(instrumenter::instrument)
+                },
+            ) ?: return
+            val run = synchronized(lifecycle) {
+                if (finished) return
+                controller.prepare(breakpointLines())
+                // a background job keeps the REST service free for polling and resume calls
+                dev.dybug.routeros.device.RouterBackgroundRun(client, "ide-dbg").also {
+                    background = it
+                    it.start(instrumented.text)
+                    poller = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(::poll, 200, 250, TimeUnit.MILLISECONDS)
+                }
+            }
             val output = run.await(timeoutMillis = 24L * 3600 * 1000) { !finished }
             output.lineSequence().filter { it.isNotEmpty() }.forEach { handler.print(it) }
             handler.print(RosBundle.message("run.console.done", 0), ProcessOutputType.SYSTEM)
@@ -119,28 +132,39 @@ class RosDebugProcess(
 
     private fun poll() {
         if (finished) return
-        val pause = runCatching { controller.pause() }.getOrNull()
-        if (pause == null) {
-            lastPause = null
-            return
-        }
-        if (pause == lastPause) return
-        lastPause = pause
+        val pause = runCatching { controller.pause() }.getOrNull() ?: return
+        if (pause.sequence == lastSequence) return
+        lastSequence = pause.sequence
         val position = XDebuggerUtil.getInstance().createPosition(file, pause.line - 1) ?: return
-        session.positionReached(SuspendContext(position, pause.variables))
+        val context = SuspendContext(position, pause.variables)
+        val breakpoint = if (stepping) null else synchronized(breakpoints) { breakpoints.firstOrNull { it.isEnabled && it.line == pause.line - 1 } }
+        stepping = false
+        if (breakpoint == null) {
+            session.positionReached(context)
+        } else if (!session.breakpointReached(breakpoint, null, context)) {
+            // conditions/log-only breakpoints: the session decided not to suspend
+            send(step = false)
+        }
     }
 
     private fun breakpointLines(): Set<Int> = synchronized(breakpoints) { breakpoints.filter { it.isEnabled }.map { it.line }.toSet() }
 
     private fun pushBreakpoints() {
-        if (finished) return
-        ApplicationManager.getApplication().executeOnPooledThread { runCatching { controller.setBreakpoints(breakpointLines()) } }
+        if (finished || background == null) return
+        ApplicationManager.getApplication().executeOnPooledThread {
+            synchronized(lifecycle) {
+                if (!finished && background != null) runCatching { controller.setBreakpoints(breakpointLines()) }
+            }
+        }
     }
 
     private fun send(step: Boolean) {
-        lastPause = null
+        stepping = step
         ApplicationManager.getApplication().executeOnPooledThread {
-            runCatching { controller.resume(step) }.onFailure { handler.print(it.message.orEmpty(), ProcessOutputType.STDERR) }
+            synchronized(lifecycle) {
+                if (finished) return@executeOnPooledThread
+                runCatching { controller.resume(step) }.onFailure { handler.print(it.message.orEmpty(), ProcessOutputType.STDERR) }
+            }
         }
     }
 
@@ -160,19 +184,20 @@ class RosDebugProcess(
     }
 
     override fun stop() {
-        ApplicationManager.getApplication().executeOnPooledThread {
-            background?.stop()
-            finish()
-        }
+        finished = true
+        ApplicationManager.getApplication().executeOnPooledThread { finish() }
     }
 
-    @Synchronized
+    /** Stops the job before removing the rendezvous globals, so instrumented code never runs unmanaged. */
     private fun finish() {
-        if (finished) return
-        finished = true
-        poller?.cancel(false)
-        controller.cleanUp()
-        background?.cleanUp()
+        synchronized(lifecycle) {
+            finished = true
+            poller?.cancel(false)
+            poller = null
+            background?.cleanUp()
+            background = null
+            controller.cleanUp()
+        }
         handler.finish(0)
     }
 

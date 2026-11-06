@@ -35,6 +35,7 @@ class RosInstrumenter(val token: String) {
     val stateVar = "RosDbg${token}State"
     val stepVar = "RosDbg${token}Step"
     val breakpointsVar = "RosDbg${token}Bps"
+    val sequenceVar = "RosDbg${token}Seq"
 
     data class Result(val text: String, val pauseLines: Set<Int>)
 
@@ -58,7 +59,7 @@ class RosInstrumenter(val token: String) {
             last = offset
         }
         result.append(text, last, text.length)
-        val header = ":global $pauseVar; :global $stateVar; :global $stepVar; :global $breakpointsVar; "
+        val header = ":global $pauseVar; :global $stateVar; :global $stepVar; :global $breakpointsVar; :global $sequenceVar; "
         return Result(header + result, lines)
     }
 
@@ -81,7 +82,7 @@ class RosInstrumenter(val token: String) {
     /** `do={…}`, `:do {…}` and bare `{ … }` statements are code; `{1;2}` values and arrays are data. */
     private fun isCodeBlock(block: RosBlock): Boolean {
         val direct = when (val parent = block.parent) {
-            is RosNamedArgument -> RosPsiUtil.argumentName(parent) in CODE_ARGUMENTS
+            is RosNamedArgument -> isCodeArgument(parent)
             is RosScriptCommand -> parent.firstChild?.text in setOf(":do", ":onerror", ":execute")
             // a bare block statement parses as a command whose only argument is the block
             is RosCommand -> parent.path == null && RosPsiUtil.arguments(parent).singleOrNull() === block
@@ -90,6 +91,20 @@ class RosInstrumenter(val token: String) {
         if (!direct) return false
         val outer = PsiTreeUtil.getParentOfType(block, RosBlock::class.java) ?: return true
         return isCodeBlock(outer)
+    }
+
+    /**
+     * Blocks that run during this script. `in=` is code only for `:onerror` (an array for `:foreach`);
+     * bodies of `:global` functions and `source=`/`on-event=` outlive the session and stay untouched.
+     */
+    private fun isCodeArgument(argument: RosNamedArgument): Boolean {
+        val name = RosPsiUtil.argumentName(argument)
+        val owner = argument.parent
+        return when {
+            owner is dev.dybug.routeros.psi.RosGlobalDecl -> false
+            name == "in" -> owner is RosScriptCommand && owner.firstChild?.text == ":onerror"
+            else -> name in CODE_ARGUMENTS
+        }
     }
 
     private fun startsLine(text: String, offset: Int): Boolean {
@@ -113,10 +128,11 @@ class RosInstrumenter(val token: String) {
             val text = RosElementFactory.nameText(name)
             "\"${name.replace("$", "\\$")}\"=\$$text"
         }
-        val state = "(\"{\\\"line\\\":$number,\\\"vars\\\":\" . [:serialize to=json value=({$values})] . \"}\")"
+        val state = "(\"{\\\"seq\\\":\" . \$$sequenceVar . \",\\\"line\\\":$number,\\\"vars\\\":\" . " +
+            "[:serialize to=json value=({$values})] . \"}\")"
         // globals are redeclared inside the pause so that it also works within function bodies
         return ":if (\$$stepVar or [:find \$$breakpointsVar \",$number,\"] >= 0) do={ " +
-            ":global $pauseVar; :global $stateVar; " +
+            ":global $pauseVar; :global $stateVar; :global $sequenceVar; :set $sequenceVar (\$$sequenceVar + 1); " +
             ":set $stateVar $state; :set $pauseVar true; :while (\$$pauseVar) do={ :delay 100ms } }; "
     }
 
@@ -134,6 +150,6 @@ class RosInstrumenter(val token: String) {
 
     private companion object {
         const val MAX_VARIABLES = 50
-        val CODE_ARGUMENTS = setOf("do", "else", "on-error", "in", "command", "script", "source", "on-event")
+        val CODE_ARGUMENTS = setOf("do", "else", "on-error", "command")
     }
 }

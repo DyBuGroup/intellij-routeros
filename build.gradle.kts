@@ -24,6 +24,9 @@ kotlin {
         apiVersion = KotlinVersion.KOTLIN_2_1
         languageVersion = KotlinVersion.KOTLIN_2_1
         freeCompilerArgs.add("-Xsuppress-version-warnings")
+        // call platform interface defaults directly instead of generating compatibility bridges,
+        // which the plugin verifier reports as uses of internal/experimental API
+        freeCompilerArgs.add("-jvm-default=no-compatibility")
     }
 }
 

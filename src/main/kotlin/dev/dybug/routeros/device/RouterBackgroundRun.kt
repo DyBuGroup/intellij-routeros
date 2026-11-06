@@ -51,7 +51,9 @@ class RouterBackgroundRun(private val client: RouterRestClient, prefix: String =
         runCatching { client.jobs().filter { it.second == scriptName }.forEach { client.removeJob(it.first) } }
     }
 
+    /** Stops a still running job first, then removes the script (unless kept) and the output file. */
     fun cleanUp(keepScript: Boolean = false) {
+        stop()
         if (!keepScript) runCatching { client.deleteScript(scriptName) }
         runCatching { client.deleteFile(outputFile) }
     }

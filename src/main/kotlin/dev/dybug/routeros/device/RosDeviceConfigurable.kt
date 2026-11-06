@@ -95,7 +95,7 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
         val generation = ++loadGeneration
         val keys = profiles.associateWith { RouterCredentials.key(it) }
         originalKeys += keys.values
-        ApplicationManager.getApplication().executeOnPooledThread {
+        CREDENTIAL_IO.execute {
             val loaded = keys.mapValues { (_, key) -> RouterCredentials.password(key) }
             ApplicationManager.getApplication().invokeLater({
                 if (uiDisposed || generation != loadGeneration) return@invokeLater
@@ -133,14 +133,16 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
         settings.update(profiles, defaultName.takeIf { it in names } ?: names.firstOrNull().orEmpty())
         // snapshot immutable keys and values now; later UI edits must not change what gets stored
         val keysChanged = profiles.map { RouterCredentials.key(it) }.toSet() != originalKeys
+        if (keysChanged && !passwordsLoaded) {
+            throw com.intellij.openapi.options.ConfigurationException(RosBundle.message("device.settings.passwords.loading"))
+        }
         if (passwordsLoaded && (passwordsChanged || keysChanged)) {
             val toStore = profiles.associate { RouterCredentials.key(it) to passwords[it].orEmpty() }
             val orphaned = originalKeys - toStore.keys
-            ApplicationManager.getApplication().executeOnPooledThread {
-                synchronized(RouterCredentials) {
-                    orphaned.forEach { RouterCredentials.store(it, null) }
-                    toStore.forEach { (key, password) -> RouterCredentials.store(key, password) }
-                }
+            // one ordered queue for all credential reads and writes
+            CREDENTIAL_IO.execute {
+                orphaned.forEach { RouterCredentials.store(it, null) }
+                toStore.forEach { (key, password) -> RouterCredentials.store(key, password) }
             }
             originalKeys.clear()
             originalKeys += toStore.keys
@@ -209,7 +211,9 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
         val password = String(passwordField.password)
         // until stored passwords are loaded, an empty field must not overwrite them
         if (passwordsLoaded && passwords[profile] != password) {
-            passwords[profile] = password
+            // profiles with the same URL and user share one stored password
+            val key = RouterCredentials.key(profile)
+            profiles.filter { it === profile || RouterCredentials.key(it) == key }.forEach { passwords[it] = password }
             passwordsChanged = true
         }
         profile.tlsMode = tlsCombo.selectedItem as? TlsMode ?: TlsMode.VERIFY
@@ -268,5 +272,9 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
                 }, ModalityState.any())
             }
         })
+    }
+
+    private companion object {
+        val CREDENTIAL_IO = com.intellij.util.concurrency.AppExecutorUtil.createBoundedApplicationPoolExecutor("RouterOS credentials", 1)
     }
 }

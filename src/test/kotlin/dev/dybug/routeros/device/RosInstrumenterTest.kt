@@ -24,7 +24,8 @@ class RosInstrumenterTest : BasePlatformTestCase() {
         val file = myFixture.configureByText("s.rsc", script) as RosFile
         val result = RosInstrumenter("t1").instrument(file)
         assertEquals(script.lines().size, result.text.lines().size)
-        assertEquals(setOf(0, 1, 2, 3, 4, 6, 7, 9), result.pauseLines)
+        // the body of the :global function persists after the session and is not instrumented
+        assertEquals(setOf(0, 1, 2, 6, 7, 9), result.pauseLines)
         val instrumented = myFixture.configureByText("i.rsc", result.text)
         assertNull(result.text, PsiTreeUtil.findChildOfType(instrumented, PsiErrorElement::class.java))
     }
@@ -39,5 +40,10 @@ class RosInstrumenterTest : BasePlatformTestCase() {
         val file = myFixture.configureByText("s.rsc", ":local a 1\n:local \"b c\" 2\n:put \$a\n") as RosFile
         val line = RosInstrumenter("t3").instrument(file).text.lines()[2]
         assertTrue(line, line.contains("\"a\"=\$a") && line.contains("\"b c\"=\$\"b c\""))
+    }
+
+    fun testForeachArrayIsData() {
+        val file = myFixture.configureByText("s.rsc", ":foreach x in={\n  1;\n  2\n} do={\n  :put \$x\n}\n") as RosFile
+        assertEquals(setOf(0, 4), RosInstrumenter("t4").instrument(file).pauseLines)
     }
 }

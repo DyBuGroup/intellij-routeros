@@ -72,10 +72,32 @@ class RouterRestClient(
         return string(result, "ret")
     }
 
-    /** Contents of a router file, or null if it does not exist. Large files are truncated by RouterOS. */
-    fun fileContents(name: String): String? {
+    /**
+     * Contents of a router file, or null if it does not exist. RouterOS leaves `contents` empty for
+     * larger files, so those are read in chunks with `/file/read`.
+     */
+    fun fileContents(name: String, maxBytes: Long = 8L * 1024 * 1024): String? {
         val array = request("GET", "file?name=" + encode(name), null, Duration.ofSeconds(30)) as? JsonArray ?: return null
-        return array.firstOrNull()?.asJsonObject?.get("contents")?.asString
+        val entry = array.firstOrNull()?.asJsonObject ?: return null
+        val size = entry.get("size")?.asString?.toLongOrNull() ?: 0L
+        val contents = entry.get("contents")?.asString.orEmpty()
+        if (contents.toByteArray().size.toLong() >= size) return contents
+        if (size > maxBytes) throw RouterException("The router file $name is larger than ${maxBytes / (1024 * 1024)} MB")
+        val result = StringBuilder()
+        var offset = 0L
+        while (offset < size) {
+            val body = JsonObject().apply {
+                addProperty("file", name)
+                addProperty("chunk-size", CHUNK.toString())
+                addProperty("offset", offset.toString())
+            }
+            val chunk = request("POST", "file/read", body, Duration.ofSeconds(30)) as? JsonArray ?: throw protocol()
+            val data = guarded { chunk.firstOrNull()?.asJsonObject?.get("data")?.asString } ?: throw protocol()
+            if (data.isEmpty()) break
+            result.append(data)
+            offset += data.toByteArray().size
+        }
+        return result.toString()
     }
 
     /** One RouterOS highlight class per character of [input] (non-ASCII characters are sent as `?`). */
@@ -197,10 +219,18 @@ class RouterRestClient(
             Thread.currentThread().interrupt()
             throw RouterException("Interrupted", cause = e)
         }
-        val text = response.body().use { stream ->
-            val bytes = stream.readNBytes(MAX_RESPONSE_BYTES + 1)
-            if (bytes.size > MAX_RESPONSE_BYTES) throw RouterException("The router response exceeds ${MAX_RESPONSE_BYTES / (1024 * 1024)} MB")
-            String(bytes, Charsets.UTF_8)
+        // the request timeout covers only the headers; close the body stream if it stalls
+        val stream = response.body()
+        val watchdog = com.intellij.util.concurrency.AppExecutorUtil.getAppScheduledExecutorService()
+            .schedule({ runCatching { stream.close() } }, timeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS)
+        val text = try {
+            stream.use { readBody(it) }
+        } catch (e: RouterException) {
+            throw e
+        } catch (e: IOException) {
+            throw RouterException("The router did not finish its answer within ${timeout.seconds} s", cause = e)
+        } finally {
+            watchdog.cancel(false)
         }
         if (response.statusCode() == 401) throw RouterException("Authentication failed for user '${profile.user}'", 401)
         if (response.statusCode() == 403) throw RouterException("The user '${profile.user}' lacks the policy for this action", 403)
@@ -211,6 +241,12 @@ class RouterRestClient(
         } catch (e: JsonSyntaxException) {
             throw RouterException("Unexpected response from the router (not JSON)", response.statusCode(), e)
         }
+    }
+
+    private fun readBody(stream: java.io.InputStream): String {
+        val bytes = stream.readNBytes(MAX_RESPONSE_BYTES + 1)
+        if (bytes.size > MAX_RESPONSE_BYTES) throw RouterException("The router response exceeds ${MAX_RESPONSE_BYTES / (1024 * 1024)} MB")
+        return String(bytes, Charsets.UTF_8)
     }
 
     private fun errorMessage(status: Int, text: String): String {
@@ -228,6 +264,7 @@ class RouterRestClient(
     companion object {
         /** Exports and logs are well below this; anything larger is not a RouterOS answer we want in memory. */
         const val MAX_RESPONSE_BYTES = 32 * 1024 * 1024
+        private const val CHUNK = 32 * 1024
 
         fun parseBase(url: String): URI {
             val trimmed = url.trim().trimEnd('/')

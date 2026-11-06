@@ -10,7 +10,6 @@ import com.intellij.execution.process.ProcessOutputType
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.ProgramRunner
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -59,9 +58,11 @@ class RosRunState(private val configuration: RosRunConfiguration, private val en
             try {
                 val (profile, client) = RouterConnections.client(environment.project, configuration.profile)
                 val text = String(file.contentsToByteArray(), file.charset)
-                val exportStyle = ReadAction.compute<Boolean, RuntimeException> {
-                    (PsiManager.getInstance(environment.project).findFile(file) as? RosFile)?.let(RosRemoteValidator::isExportStyle) ?: false
-                }
+                val exportStyle = ApplicationManager.getApplication().runReadAction(
+                    com.intellij.openapi.util.Computable {
+                        (PsiManager.getInstance(environment.project).findFile(file) as? RosFile)?.let(RosRemoteValidator::isExportStyle) ?: false
+                    },
+                )
                 val mode = when (configuration.mode) {
                     RunMode.AUTO -> if (exportStyle) RunMode.IMPORT else RunMode.EXECUTE
                     else -> configuration.mode
@@ -101,6 +102,8 @@ class RosRunState(private val configuration: RosRunConfiguration, private val en
                 val run = RouterBackgroundRun(client, prefix).also { background = it }
                 val output = try {
                     run.start(if (mode == RunMode.IMPORT) importScript(client, text) else text)
+                    // a Stop during the upload must still remove the job that was just started
+                    if (handler.cancelled) run.stop()
                     run.await(profile.timeoutSeconds * 1000L) { !handler.cancelled }
                 } finally {
                     run.cleanUp(keepScript = mode == RunMode.UPLOAD_AND_RUN && configuration.keepUploadedScript)
