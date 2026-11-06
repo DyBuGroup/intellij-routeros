@@ -26,6 +26,10 @@ files (`.rsc`).
 - Intentions: space ⇄ slash menu paths, quote/unquote values, wrap in `:do { } on-error={ }`
 - Formatter (flat export style by default, optional section indent), code style settings,
   56 live templates, *New → RouterOS Script*, surround with, spell checking in comments/strings
+- Router integration over the REST API: run configurations (execute, upload & run, import)
+  with clickable errors and live log, validate with the router's parser, open/compare
+  `/export`, schema sync from the router, log tool window — see
+  [docs/device-integration.md](docs/device-integration.md)
 - Works fully offline; no router required for editing features
 <!-- Plugin description end -->
 

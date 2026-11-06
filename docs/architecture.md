@@ -21,6 +21,7 @@ The plugin is a native IntelliJ Platform language plugin written in Kotlin. The 
 | `intentions` | Intention actions |
 | `formatting` | Formatter, code style settings |
 | `templates` | Live template context, New File action |
+| `device` | Connection profiles and settings, REST client, run configuration, log tail, validation, export/diff, schema sync |
 | `injection` | RouterOS injection into script-valued strings, string escaper |
 
 All user-visible strings live in `src/main/resources/messages/RosBundle.properties`.

@@ -111,7 +111,7 @@ object RosPsiUtil {
         if (command.parent !is RosFile) return false
         if (arguments(command).isNotEmpty()) return false
         // `/ip address print` and `/system reboot` invoke commands; `/ip address` selects a menu
-        val schema = RosSchemaService.schema() ?: return true
+        val schema = RosSchemaService.schema(command.project) ?: return true
         val segments = resolve(emptyList(), pathSegments(path))
         val node = schema.node(segments)
         if (node != null) return node.kind != SchemaNode.Kind.COMMAND

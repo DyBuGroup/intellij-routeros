@@ -39,7 +39,7 @@ import dev.dybug.routeros.schema.ValueType
 class RosCompletionContributor : CompletionContributor() {
     override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
         val position = parameters.position
-        val schema = RosSchemaService.schema() ?: return
+        val schema = RosSchemaService.schema(parameters.position.project) ?: return
         when (position.elementType) {
             RosTypes.DOLLAR_NAME -> completeVariables(position, result.withPrefixMatcher(prefix(parameters, 1)))
             in RosTokenSets.SCRIPT_COMMANDS -> completeScriptCommands(schema, result.withPrefixMatcher(prefix(parameters, 1)))

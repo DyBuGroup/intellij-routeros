@@ -1,0 +1,246 @@
+package dev.dybug.routeros.device
+
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.Messages
+import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBPasswordField
+import com.intellij.ui.components.JBTextField
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.panel
+import dev.dybug.routeros.RosBundle
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JButton
+import javax.swing.JComponent
+import javax.swing.JSpinner
+import javax.swing.SpinnerNumberModel
+
+/** Settings | Languages & Frameworks | RouterOS: connection profiles. Passwords go to the password safe. */
+class RosDeviceConfigurable(private val project: Project) : Configurable {
+    private val settings = RosDeviceSettings.getInstance(project)
+    private val profiles = mutableListOf<RouterProfile>()
+    private val passwords = mutableMapOf<RouterProfile, String>()
+    private var defaultName = ""
+    private var current: RouterProfile? = null
+
+    private val profileModel = DefaultComboBoxModel<RouterProfile>()
+    private val profileCombo = ComboBox(profileModel)
+    private val nameField = JBTextField()
+    private val urlField = JBTextField()
+    private val userField = JBTextField()
+    private val passwordField = JBPasswordField()
+    private val tlsCombo = ComboBox(TlsMode.entries.toTypedArray())
+    private val pinField = JBTextField()
+    private val timeoutSpinner = JSpinner(SpinnerNumberModel(600, 5, 86_400, 5))
+    private val defaultCheck = JBCheckBox(RosBundle.message("device.settings.default"))
+    private val status = JBLabel()
+
+    override fun getDisplayName(): String = RosBundle.message("device.settings.title")
+
+    override fun createComponent(): JComponent {
+        profileCombo.addActionListener {
+            saveFields()
+            current = profileCombo.selectedItem as? RouterProfile
+            loadFields()
+        }
+        return panel {
+            row(RosBundle.message("device.settings.profile")) {
+                cell(profileCombo).align(AlignX.FILL).resizableColumn()
+                cell(JButton(RosBundle.message("device.settings.add")).apply { addActionListener { addProfile() } })
+                cell(JButton(RosBundle.message("device.settings.remove")).apply { addActionListener { removeProfile() } })
+            }
+            separator()
+            row(RosBundle.message("device.settings.name")) { cell(nameField).align(AlignX.FILL) }
+            row(RosBundle.message("device.settings.url")) { cell(urlField).align(AlignX.FILL).comment(RosBundle.message("device.settings.url.comment")) }
+            row(RosBundle.message("device.settings.user")) { cell(userField).align(AlignX.FILL) }
+            row(RosBundle.message("device.settings.password")) { cell(passwordField).align(AlignX.FILL) }
+            row(RosBundle.message("device.settings.tls")) { cell(tlsCombo) }
+            row(RosBundle.message("device.settings.pin")) {
+                cell(pinField).align(AlignX.FILL).resizableColumn()
+                cell(JButton(RosBundle.message("device.settings.pin.fetch")).apply { addActionListener { fetchPin() } })
+            }
+            row(RosBundle.message("device.settings.timeout")) { cell(timeoutSpinner) }
+            row { cell(defaultCheck) }
+            row {
+                cell(JButton(RosBundle.message("device.settings.test")).apply { addActionListener { testConnection() } })
+                cell(status)
+            }
+            row { comment(RosBundle.message("device.settings.policy.comment")) }
+        }
+    }
+
+    override fun reset() {
+        profiles.clear()
+        settings.profiles.forEach { profiles += it.copy() }
+        defaultName = settings.state.defaultProfile
+        passwords.clear()
+        passwordsLoaded = false
+        passwordsChanged = false
+        current = null
+        refreshCombo(profiles.firstOrNull { it.name == defaultName } ?: profiles.firstOrNull())
+        // passwords are loaded lazily off the EDT
+        val snapshot = profiles.toList()
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val loaded = snapshot.associateWith { RouterCredentials.password(it) }
+            ApplicationManager.getApplication().invokeLater({
+                loaded.forEach { (profile, password) -> passwords.putIfAbsent(profile, password) }
+                passwordsLoaded = true
+                if (current != null) passwordField.text = passwords[current].orEmpty()
+            }, ModalityState.any())
+        }
+    }
+
+    override fun isModified(): Boolean {
+        saveFields()
+        val saved = settings.profiles
+        if (saved.size != profiles.size || defaultName != settings.state.defaultProfile) return true
+        if (saved.zip(profiles).any { (a, b) -> !same(a, b) }) return true
+        return passwordsChanged
+    }
+
+    private var passwordsChanged = false
+    private var passwordsLoaded = false
+
+    override fun apply() {
+        saveFields()
+        val names = profiles.map { it.name }
+        if (names.any { it.isBlank() } || names.toSet().size != names.size) {
+            throw com.intellij.openapi.options.ConfigurationException(RosBundle.message("device.settings.names.invalid"))
+        }
+        profiles.forEach { RouterRestClient.parseBase(it.url) }
+        settings.update(profiles, defaultName.takeIf { it in names } ?: names.firstOrNull().orEmpty())
+        val toStore = if (passwordsChanged) passwords.toMap() else emptyMap()
+        ApplicationManager.getApplication().executeOnPooledThread {
+            toStore.forEach { (profile, password) -> RouterCredentials.store(profile, password.ifEmpty { null }) }
+        }
+        passwordsChanged = false
+    }
+
+    private fun same(a: RouterProfile, b: RouterProfile) = a.name == b.name && a.url == b.url && a.user == b.user &&
+        a.tlsMode == b.tlsMode && a.pinnedSha256 == b.pinnedSha256 && a.timeoutSeconds == b.timeoutSeconds
+
+    private fun addProfile() {
+        saveFields()
+        val profile = RouterProfile().apply { name = uniqueName() }
+        passwords[profile] = ""
+        profiles += profile
+        if (profiles.size == 1) defaultName = profile.name
+        refreshCombo(profile)
+    }
+
+    private fun removeProfile() {
+        val profile = current ?: return
+        profiles.remove(profile)
+        passwords.remove(profile)
+        current = null
+        refreshCombo(profiles.firstOrNull())
+    }
+
+    private fun uniqueName(): String {
+        var index = profiles.size + 1
+        while (profiles.any { it.name == "router$index" }) index++
+        return "router$index"
+    }
+
+    private fun refreshCombo(select: RouterProfile?) {
+        current = null
+        profileModel.removeAllElements()
+        profiles.forEach(profileModel::addElement)
+        profileCombo.selectedItem = select
+        current = select
+        loadFields()
+    }
+
+    private fun loadFields() {
+        val profile = current
+        val enabled = profile != null
+        listOf(nameField, urlField, userField, passwordField, tlsCombo, pinField, timeoutSpinner, defaultCheck).forEach { it.isEnabled = enabled }
+        if (profile == null) return
+        nameField.text = profile.name
+        urlField.text = profile.url
+        userField.text = profile.user
+        passwordField.text = passwords[profile].orEmpty()
+        tlsCombo.selectedItem = profile.tlsMode
+        pinField.text = profile.pinnedSha256
+        timeoutSpinner.value = profile.timeoutSeconds
+        defaultCheck.isSelected = profile.name == defaultName
+        status.text = profile.lastSeenVersion.takeIf { it.isNotEmpty() }?.let { RosBundle.message("device.settings.last.version", it) }.orEmpty()
+    }
+
+    private fun saveFields() {
+        val profile = current ?: return
+        val oldName = profile.name
+        profile.name = nameField.text.trim()
+        profile.url = urlField.text.trim()
+        profile.user = userField.text.trim()
+        val password = String(passwordField.password)
+        // until stored passwords are loaded, an empty field must not overwrite them
+        if (passwordsLoaded && passwords[profile] != password) {
+            passwords[profile] = password
+            passwordsChanged = true
+        }
+        profile.tlsMode = tlsCombo.selectedItem as? TlsMode ?: TlsMode.VERIFY
+        profile.pinnedSha256 = pinField.text.trim().lowercase().replace(":", "")
+        profile.timeoutSeconds = (timeoutSpinner.value as? Int) ?: 600
+        if (defaultCheck.isSelected) {
+            defaultName = profile.name
+        } else if (defaultName == oldName) {
+            defaultName = ""
+        }
+    }
+
+    private fun testConnection() {
+        saveFields()
+        val profile = current?.copy() ?: return
+        val password = passwords[current].orEmpty()
+        status.text = RosBundle.message("device.settings.testing")
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, RosBundle.message("device.settings.testing"), true) {
+            override fun run(indicator: ProgressIndicator) {
+                val message = try {
+                    val resource = RouterConnections.client(profile, password).resource()
+                    val version = resource.get("version")?.asString.orEmpty()
+                    settings.rememberVersion(profile.name, version)
+                    profiles.firstOrNull { it.name == profile.name }?.lastSeenVersion = version
+                    RosBundle.message("device.settings.connected", version, resource.get("board-name")?.asString.orEmpty())
+                } catch (e: RouterException) {
+                    RosBundle.message("device.settings.failed", e.message.orEmpty())
+                } catch (e: Exception) {
+                    RosBundle.message("device.settings.failed", e.message ?: e.javaClass.simpleName)
+                }
+                ApplicationManager.getApplication().invokeLater({ status.text = message }, ModalityState.any())
+            }
+        })
+    }
+
+    private fun fetchPin() {
+        val url = urlField.text.trim()
+        ProgressManager.getInstance().run(object : Task.Modal(project, RosBundle.message("device.settings.pin.fetch"), true) {
+            override fun run(indicator: ProgressIndicator) {
+                val result = runCatching { RouterConnections.fetchFingerprint(url) }
+                ApplicationManager.getApplication().invokeLater({
+                    result.onSuccess { fingerprint ->
+                        val answer = Messages.showYesNoDialog(
+                            project,
+                            RosBundle.message("device.settings.pin.confirm", fingerprint.chunked(2).joinToString(":")),
+                            RosBundle.message("device.settings.pin.fetch"),
+                            Messages.getQuestionIcon(),
+                        )
+                        if (answer == Messages.YES) {
+                            pinField.text = fingerprint
+                            tlsCombo.selectedItem = TlsMode.PINNED
+                        }
+                    }.onFailure {
+                        Messages.showErrorDialog(project, it.message ?: it.javaClass.simpleName, RosBundle.message("device.settings.pin.fetch"))
+                    }
+                }, ModalityState.any())
+            }
+        })
+    }
+}

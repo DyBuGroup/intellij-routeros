@@ -11,10 +11,35 @@ import java.util.zip.GZIPInputStream
 object RosSchemaLoader {
     const val SUPPORTED_FORMAT = 1
 
-    fun loadBundled(version: String = BUNDLED_VERSION): RosSchema {
-        val schema = resource("/schema/routeros-$version.json.gz").use { GZIPInputStream(it).reader(Charsets.UTF_8).use(JsonParser::parseReader) }
+    /** Loads the bundled schema; [merge] (a schema synced from a router) adds menus and arguments. */
+    fun loadBundled(version: String = BUNDLED_VERSION, merge: JsonObject? = null): RosSchema {
+        val schema = resource("/schema/routeros-$version.json.gz").use { GZIPInputStream(it).reader(Charsets.UTF_8).use(JsonParser::parseReader) }.asJsonObject
         val builtins = resource("/schema/builtins.json").use { it.reader(Charsets.UTF_8).use(JsonParser::parseReader) }
-        return load(schema.asJsonObject, builtins.asJsonObject)
+        if (merge != null) merge(schema, merge)
+        return load(schema, builtins.asJsonObject)
+    }
+
+    /**
+     * Adds nodes and argument names from [device] that the docs schema lacks. Documented types and
+     * descriptions win; the reported version becomes the router's.
+     */
+    fun merge(docs: JsonObject, device: JsonObject) {
+        val nodes = docs.getAsJsonObject("nodes")
+        for ((path, value) in device.getAsJsonObject("nodes").entrySet()) {
+            val deviceNode = value.asJsonObject
+            val existing = nodes.getAsJsonObject(path)
+            if (existing == null) {
+                nodes.add(path, deviceNode)
+                continue
+            }
+            val known = existing.getAsJsonArray("args")?.map { it.asJsonObject.get("n").asString }?.toSet().orEmpty()
+            val extra = deviceNode.getAsJsonArray("args")?.filter { it.asJsonObject.get("n").asString !in known }.orEmpty()
+            if (extra.isNotEmpty()) {
+                val args = existing.getAsJsonArray("args") ?: JsonArray().also { existing.add("args", it) }
+                extra.forEach(args::add)
+            }
+        }
+        device.get("version")?.let { docs.add("version", it) }
     }
 
     fun load(schemaJson: JsonObject, builtinsJson: JsonObject): RosSchema {

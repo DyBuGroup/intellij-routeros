@@ -19,3 +19,5 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Variable/function references with cross-file globals, find usages, rename, Go to Symbol
 - 13 inspections with quick fixes and 3 intentions
 - Formatter and code style settings, live templates, file template, surround with, spell checking
+- Router connections (password safe, TLS pinning), run configurations, log tool window,
+  validate on router, open/compare export, schema sync with version banner

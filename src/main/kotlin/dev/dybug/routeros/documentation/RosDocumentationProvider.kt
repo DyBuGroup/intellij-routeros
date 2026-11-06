@@ -30,7 +30,7 @@ import dev.dybug.routeros.schema.ValueType
 class RosDocumentationProvider : AbstractDocumentationProvider() {
     override fun getCustomDocumentationElement(editor: Editor, file: PsiFile, contextElement: PsiElement?, targetOffset: Int): PsiElement? {
         if (file !is RosFile || contextElement == null) return null
-        val schema = RosSchemaService.schema() ?: return null
+        val schema = RosSchemaService.schema(file.project) ?: return null
         val html = docFor(contextElement, schema) ?: return null
         return RosDocElement(contextElement, contextElement.text, html)
     }

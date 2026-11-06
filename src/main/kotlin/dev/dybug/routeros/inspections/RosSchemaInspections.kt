@@ -34,7 +34,7 @@ class RosUnknownPropertyInspection : RosInspectionBase() {
         val key = element.firstChild ?: return
         if (key.elementType != RosTypes.ARG_NAME) return
         val command = element.parent as? RosCommand ?: return
-        val schema = RosSchemaService.schema() ?: return
+        val schema = RosSchemaService.schema(element.project) ?: return
         val arguments = checkedArguments(command, schema) ?: return
         val name = key.text
         if (name in arguments || name.contains('.') || name in schema.builtins.universalArguments) return
@@ -68,7 +68,7 @@ class RosValueTypeInspection : RosInspectionBase() {
     override fun visit(element: PsiElement, holder: ProblemsHolder) {
         if (element !is RosNamedArgument) return
         val command = element.parent as? RosCommand ?: return
-        val schema = RosSchemaService.schema() ?: return
+        val schema = RosSchemaService.schema(element.project) ?: return
         val target = RosSchemaContext.target(command, schema)
         if (!target.isKnown) return
         val arg = schema.argumentsOf(target)[RosPsiUtil.argumentName(element)] ?: return
@@ -87,7 +87,7 @@ class RosDeprecatedPropertyInspection : RosInspectionBase() {
         if (element !is RosNamedArgument) return
         val key = element.firstChild?.takeIf { it.elementType == RosTypes.ARG_NAME } ?: return
         val command = element.parent as? RosCommand ?: return
-        val schema = RosSchemaService.schema() ?: return
+        val schema = RosSchemaService.schema(element.project) ?: return
         val path = RosPsiUtil.resolvedPath(command).joinToString("/")
         V6_REPLACEMENTS[path.substringBeforeLast('/') + ":" + key.text]?.let { replacement ->
             holder.registerProblem(
@@ -114,7 +114,7 @@ class RosDeprecatedPropertyInspection : RosInspectionBase() {
 class RosMissingMandatoryPropertyInspection : RosInspectionBase() {
     override fun visit(element: PsiElement, holder: ProblemsHolder) {
         if (element !is RosCommand) return
-        val schema = RosSchemaService.schema() ?: return
+        val schema = RosSchemaService.schema(element.project) ?: return
         val target = RosSchemaContext.target(element, schema)
         if (!target.isKnown || target.verb != "add" || target.command != null) return
         val present = RosPsiUtil.namedArguments(element).map(RosPsiUtil::argumentName).toSet()
@@ -135,7 +135,7 @@ class RosShadowedPropertyInspection : RosInspectionBase() {
         if (element !is RosVariable) return
         if (PsiTreeUtil.getParentOfType(element, RosWhereClause::class.java) == null) return
         val command = PsiTreeUtil.getParentOfType(element, RosCommand::class.java) ?: return
-        val schema = RosSchemaService.schema() ?: return
+        val schema = RosSchemaService.schema(element.project) ?: return
         val menu = RosSchemaContext.target(command, schema).menu ?: return
         val name = RosPsiUtil.variableName(element)
         if (name in menu.args || name in menu.readOnly) {

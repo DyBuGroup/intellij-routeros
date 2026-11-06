@@ -28,5 +28,9 @@ class RosSchemaService {
         fun getInstance(): RosSchemaService = service()
 
         fun schema(): RosSchema? = getInstance().schema
+
+        /** The project's schema: bundled, merged with a schema synced from a router if there is one. */
+        fun schema(project: com.intellij.openapi.project.Project?): RosSchema? =
+            if (project == null || project.isDisposed) getInstance().schema else RosProjectSchemaService.getInstance(project).schema
     }
 }

@@ -95,11 +95,28 @@
     <internalFileTemplate name="RouterOS Script"/>
     <spellchecker.support language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosSpellcheckingStrategy"/>
     <lang.surroundDescriptor language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosSurroundDescriptor"/>
+    <projectConfigurable parentId="language" instance="dev.dybug.routeros.device.RosDeviceConfigurable"
+                         id="dev.dybug.routeros.device" key="device.settings.title" bundle="messages.RosBundle"/>
+    <configurationType implementation="dev.dybug.routeros.device.run.RosRunConfigurationType"/>
+    <runConfigurationProducer implementation="dev.dybug.routeros.device.run.RosRunConfigurationProducer"/>
+    <runLineMarkerContributor language="RouterOS" implementationClass="dev.dybug.routeros.device.run.RosRunLineMarkerContributor"/>
+    <toolWindow id="RouterOS Log" anchor="bottom" icon="/icons/routeros.svg" canCloseContents="false"
+                factoryClass="dev.dybug.routeros.device.log.RosLogToolWindowFactory"/>
+    <notificationGroup id="RouterOS" displayType="BALLOON" key="notification.group.routeros"/>
+    <editorNotificationProvider implementation="dev.dybug.routeros.device.sync.RosSchemaVersionNotificationProvider"/>
     <indexPatternBuilder implementation="dev.dybug.routeros.editor.RosIndexPatternBuilder"/>
     <todoIndexer filetype="RouterOS Script" implementationClass="dev.dybug.routeros.editor.RosTodoIndexer"/>
   </extensions>
 
   <actions>
+    <group id="RouterOS.Group" popup="true" icon="/icons/routeros.svg">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <action id="RouterOS.Validate" class="dev.dybug.routeros.device.RosValidateOnRouterAction"/>
+      <action id="RouterOS.CompareWithRouter" class="dev.dybug.routeros.device.RosCompareWithRouterAction"/>
+      <action id="RouterOS.FetchExport" class="dev.dybug.routeros.device.RosFetchExportAction"/>
+      <action id="RouterOS.SyncSchema" class="dev.dybug.routeros.device.sync.RosSchemaSyncAction"/>
+    </group>
     <action id="RouterOS.NewFile" class="dev.dybug.routeros.templates.RosCreateFileAction"
             icon="/icons/routeros.svg">
       <add-to-group group-id="NewGroup" anchor="after" relative-to-action="NewFile"/>

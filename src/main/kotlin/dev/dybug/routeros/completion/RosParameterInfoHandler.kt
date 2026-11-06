@@ -18,7 +18,7 @@ class RosParameterInfoHandler : ParameterInfoHandler<PsiElement, RosParameterInf
 
     override fun findElementForParameterInfo(context: CreateParameterInfoContext): PsiElement? {
         val owner = ownerAt(context.file, context.offset) ?: return null
-        val schema = RosSchemaService.schema() ?: return null
+        val schema = RosSchemaService.schema(context.project) ?: return null
         val arguments = RosSchemaContext.argumentsFor(owner, schema)
         if (arguments.isEmpty()) return null
         val mandatory = arguments.values.filter { it.mandatory }.map { it.name }.toSet()

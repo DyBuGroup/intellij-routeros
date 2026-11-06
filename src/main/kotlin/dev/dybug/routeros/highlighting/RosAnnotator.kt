@@ -31,7 +31,7 @@ class RosAnnotator : Annotator {
     }
 
     private fun annotateCommand(command: RosCommand, holder: AnnotationHolder) {
-        val schema = RosSchemaService.schema() ?: return
+        val schema = RosSchemaService.schema(command.project) ?: return
         val path = command.path
         val target = RosSchemaContext.target(command, schema)
         if (path != null) colorPath(command, target, holder)
