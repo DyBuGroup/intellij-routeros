@@ -11,6 +11,7 @@ import static dev.dybug.routeros.psi.RosTypes.*;
 %{
   private int[] stack = new int[16];
   private int[] hashes = new int[16];
+  private char[] openers = new char[16];
   private int depth = 0;
   private int hash = 0;
   private int stringFrames = 0;
@@ -35,14 +36,16 @@ import static dev.dybug.routeros.psi.RosTypes.*;
     return hash;
   }
 
-  private void push(int returnState) {
+  private void push(int returnState, char opener) {
     if (depth == stack.length) {
       stack = java.util.Arrays.copyOf(stack, depth * 2);
       hashes = java.util.Arrays.copyOf(hashes, depth * 2);
+      openers = java.util.Arrays.copyOf(openers, depth * 2);
     }
     hashes[depth] = hash;
+    openers[depth] = opener;
     stack[depth++] = returnState;
-    hash = hash * 31 + returnState + 1;
+    hash = (hash * 31 + returnState) * 131 + opener + 1;
     if (returnState == STRING) stringFrames++;
   }
 
@@ -58,8 +61,27 @@ import static dev.dybug.routeros.psi.RosTypes.*;
   }
 
   private void enter(int returnState, int newState) {
-    push(returnState);
+    char opener = yylength() > 0 ? yycharat(yylength() - 1) : ' ';
+    push(returnState, opener);
     yybegin(newState);
+  }
+
+  /**
+   * Closes the innermost frame opened by the bracket matching [closer]. Frames opened by other
+   * brackets in between are unwound (the input is broken there anyway), so that a missing ']' does
+   * not leave the lexer inside an expression for the rest of the file. A closer without any
+   * matching opener (stopping at string boundaries) leaves the state unchanged.
+   */
+  private void closeBracket(char closer) {
+    char opener = closer == ')' ? '(' : closer == ']' ? '[' : '{';
+    for (int i = depth - 1; i >= 0; i--) {
+      if (openers[i] == opener) {
+        while (depth > i + 1) pop();
+        pop();
+        return;
+      }
+      if (openers[i] == '"') return;
+    }
   }
 
   /** True when the lexer is inside $(...) or $[...] interpolation of a string literal. */
@@ -141,8 +163,9 @@ EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
                            return DOLLAR_NAME; }
   "$" / \"               { if (yystate() == YYINITIAL) yybegin(SARGS); else if (yystate() == PATH) yybegin(ARGS);
                            return DOLLAR; }
-  "]" | "}" | ")"        { IElementType t = yycharat(0) == ']' ? RBRACKET : yycharat(0) == '}' ? RBRACE : RPAREN;
-                           pop(); return t; }
+  "]" | "}" | ")"        { char c = yycharat(0);
+                           closeBracket(c);
+                           return c == ']' ? RBRACKET : c == '}' ? RBRACE : RPAREN; }
 }
 
 <YYINITIAL, PATH, ARGS, VALUE, SARGS, SVALUE, WHERE> {

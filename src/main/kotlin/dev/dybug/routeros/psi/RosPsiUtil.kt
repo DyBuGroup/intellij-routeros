@@ -9,6 +9,8 @@ import com.intellij.psi.tree.TokenSet
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiTreeUtil
+import dev.dybug.routeros.schema.RosSchemaService
+import dev.dybug.routeros.schema.SchemaNode
 
 /** Semantic helpers over the generated PSI. Menu paths are lists of segments without slashes. */
 object RosPsiUtil {
@@ -106,7 +108,13 @@ object RosPsiUtil {
         val path = command.path ?: return false
         if (!isAbsolute(path)) return false
         if (command.parent !is RosFile) return false
-        return arguments(command).isEmpty()
+        if (arguments(command).isNotEmpty()) return false
+        // `/ip address print` and `/system reboot` invoke commands; `/ip address` selects a menu
+        val schema = RosSchemaService.schema() ?: return true
+        val segments = resolve(emptyList(), pathSegments(path))
+        val node = schema.node(segments)
+        if (node != null) return node.kind != SchemaNode.Kind.COMMAND
+        return schema.resolveCommand(segments).verb == null
     }
 
     /** A top-level command that continues an export section: relative path or no path at all. */

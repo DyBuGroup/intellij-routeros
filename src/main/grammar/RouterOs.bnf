@@ -124,10 +124,15 @@ command ::= path argument* | argument+
 
 path ::= (SLASH | PATH_WORD)+
 
-private argument ::= named_argument | where_clause | value
+private argument ::= named_argument | where_clause | string_argument | value
 
 named_argument ::= arg_key EQ value? {pin=2}
-private arg_key ::= ARG_NAME | CONTROL_ARG | WORD | string
+private arg_key ::= ARG_NAME | CONTROL_ARG | WORD
+
+// "quoted key"=value (array items): parse the string once, then turn it into a named argument
+// when '=' follows; re-parsing strings on backtracking would be exponential for nested interpolation
+private string_argument ::= string string_key_tail?
+left string_key_tail ::= EQ value? {elementType=named_argument}
 
 // conditions written next to each other are implicitly and-ed: where a=1 !disabled
 where_clause ::= WHERE_KW expr* {pin=1}
@@ -147,8 +152,8 @@ private value ::= string
 // ---------------------------------------------------------------- blocks, substitutions, strings, variables
 block ::= LBRACE inner_item* RBRACE {pin=1}
 bracket_command ::= LBRACKET inner_item* RBRACKET {pin=1}
-private inner_item ::= separator | statement_item | inner_stray
-private inner_stray ::= RPAREN
+// a ')' ends a block/substitution so that it can close an enclosing expression
+private inner_item ::= separator | statement_item
 
 string ::= STRING_START string_part* STRING_END {
   pin=1

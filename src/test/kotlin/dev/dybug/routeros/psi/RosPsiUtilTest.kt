@@ -35,4 +35,13 @@ class RosPsiUtilTest : BasePlatformTestCase() {
         assertEquals(listOf("name", "disabled"), RosPsiUtil.namedArguments(add).map(RosPsiUtil::argumentName))
         assertEquals("a b", RosPsiUtil.namedArgument(add, "name")?.let(RosPsiUtil::argumentValueText))
     }
+
+    fun testCommandInvocationsDoNotChangeMenuContext() {
+        val file = myFixture.configureByText("test.rsc", "/system script\n/ip address print\n/system reboot\nadd name=x\n")
+        val commands = PsiTreeUtil.getChildrenOfTypeAsList(file, RosCommand::class.java)
+        assertTrue(RosPsiUtil.isMenuContextLine(commands[0]))
+        assertFalse(RosPsiUtil.isMenuContextLine(commands[1]))
+        assertFalse(RosPsiUtil.isMenuContextLine(commands[2]))
+        assertEquals(listOf("system", "script", "add"), RosPsiUtil.resolvedPath(commands[3]))
+    }
 }

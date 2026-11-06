@@ -38,3 +38,14 @@ class RosScriptInjectorTest : BasePlatformTestCase() {
         return manager.getUnescapedText(file)
     }
 }
+
+class RosStringManipulatorTest : BasePlatformTestCase() {
+    fun testContentChangeEscapes() {
+        myFixture.configureByText("test.rsc", ":put \"old\"\n")
+        val string = PsiTreeUtil.findChildOfType(myFixture.file, RosString::class.java)!!
+        com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) {
+            com.intellij.psi.ElementManipulators.handleContentChange(string, "a \"b\" \\ \$c\n")
+        }
+        assertEquals(":put \"a \\\"b\\\" \\\\ \\\$c\\n\"\n", myFixture.file.text)
+    }
+}

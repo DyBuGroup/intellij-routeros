@@ -24,7 +24,9 @@ abstract class RosStringMixin(node: ASTNode) : ASTWrapperPsiElement(node), RosSt
 
     override fun updateText(text: String): PsiLanguageInjectionHost {
         val file = PsiFileFactory.getInstance(project).createFileFromText("dummy.rsc", RosLanguage, ":put $text")
-        val replacement = PsiTreeUtil.findChildOfType(file, RosString::class.java) ?: return this
+        val replacement = PsiTreeUtil.findChildOfType(file, RosString::class.java)
+        // only replace when the new text is exactly one string literal
+        if (replacement == null || replacement.text != text) return this
         return replace(replacement) as PsiLanguageInjectionHost
     }
 

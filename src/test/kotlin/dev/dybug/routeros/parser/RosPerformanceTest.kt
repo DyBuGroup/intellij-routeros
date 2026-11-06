@@ -23,4 +23,22 @@ class RosPerformanceTest : BasePlatformTestCase() {
         assertNull(PsiTreeUtil.findChildOfType(file, PsiErrorElement::class.java))
         assertTrue("parsing 1 MB took $elapsedMs ms", elapsedMs < 20_000)
     }
+
+    /** Nested string interpolation must not cause exponential re-parsing. */
+    fun testNestedInterpolationIsLinear() {
+        var text = "\"x\""
+        repeat(25) { text = "\"\$[:put $text]\"" }
+        val started = System.nanoTime()
+        val file = myFixture.configureByText("nested.rsc", ":put $text\n")
+        file.node.lastChildNode
+        val elapsedMs = (System.nanoTime() - started) / 1_000_000
+        assertTrue("nested interpolation took $elapsedMs ms", elapsedMs < 5_000)
+    }
+
+    fun testMissingBracketDoesNotSwallowFollowingStatements() {
+        val file = myFixture.configureByText("broken.rsc", ":put ([find)\n/ip address print\n")
+        val commands = PsiTreeUtil.getChildrenOfTypeAsList(file, dev.dybug.routeros.psi.RosCommand::class.java)
+        assertEquals(1, commands.size)
+        assertEquals("/ip address print", commands.single().text)
+    }
 }
