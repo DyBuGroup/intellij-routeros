@@ -6,11 +6,25 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-07
+
 ### Changed
 
 - Menu paths and commands use the function-name colour; values, properties and variables each have
   their own colour
 - MikroTik symbol as plugin and file icon, with light and dark variants
+- Router passwords are stored per project
+- The formatter no longer changes whitespace around `=` or inside menu paths
+
+### Fixed
+
+- Quick fixes and intentions inside scripts embedded in strings escape their text
+- Path style conversion keeps positional arguments separate
+- Variables used before their `:global` declaration are reported
+- Faster variable resolution and unused-variable checks on large files
+- Router messages are escaped in notifications; stricter checks of router responses
+- Debugger: breakpoints inside `:local` functions, unreachable breakpoints marked, exit codes,
+  validation before debugging, no instrumentation of persisted or background code
 
 ## [1.0.0] - 2026-11-06
 
@@ -32,5 +46,6 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Runs execute as background jobs so log tail and Stop stay responsive
 - Experimental pseudo-debugger behind an advanced setting
 
-[Unreleased]: https://github.com/dybug/routeros-intellij/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/dybug/routeros-intellij/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/dybug/routeros-intellij/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/dybug/routeros-intellij/commits/v1.0.0
