@@ -1,0 +1,22 @@
+<list>
+  <option name="ROS_COMMAND">
+    <value>
+      <option name="FOREGROUND" value="c77dbb"/>
+    </value>
+  </option>
+  <option name="ROS_PATH">
+    <value>
+      <option name="FOREGROUND" value="56a8f5"/>
+    </value>
+  </option>
+  <option name="ROS_SLASH">
+    <value>
+      <option name="FOREGROUND" value="56a8f5"/>
+    </value>
+  </option>
+  <option name="ROS_PROPERTY">
+    <value>
+      <option name="FOREGROUND" value="6aab73"/>
+    </value>
+  </option>
+</list>

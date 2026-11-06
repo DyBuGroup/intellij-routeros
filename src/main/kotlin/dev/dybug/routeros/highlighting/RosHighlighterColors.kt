@@ -9,11 +9,13 @@ object RosHighlighterColors {
     @JvmField val COMMENT: TextAttributesKey = createTextAttributesKey("ROS_COMMENT", D.LINE_COMMENT)
     @JvmField val SCRIPT_COMMAND: TextAttributesKey = createTextAttributesKey("ROS_SCRIPT_COMMAND", D.KEYWORD)
     @JvmField val KEYWORD: TextAttributesKey = createTextAttributesKey("ROS_KEYWORD", D.KEYWORD)
-    // menu paths and command words look like function names (as in `def name` in Python)
-    @JvmField val PATH: TextAttributesKey = createTextAttributesKey("ROS_PATH", D.FUNCTION_DECLARATION)
-    @JvmField val COMMAND: TextAttributesKey = createTextAttributesKey("ROS_COMMAND", D.FUNCTION_DECLARATION)
-    @JvmField val PROPERTY: TextAttributesKey = createTextAttributesKey("ROS_PROPERTY", D.INSTANCE_FIELD)
-    @JvmField val VALUE: TextAttributesKey = createTextAttributesKey("ROS_VALUE", D.NUMBER)
+    // WinBox terminal style: commands purple, menu paths blue, property names green, values plain.
+    // Exact colours for the light and dark schemes are in resources/colorSchemes; these fallbacks
+    // pick similar hues in other themes.
+    @JvmField val PATH: TextAttributesKey = createTextAttributesKey("ROS_PATH", D.NUMBER)
+    @JvmField val COMMAND: TextAttributesKey = createTextAttributesKey("ROS_COMMAND", D.INSTANCE_FIELD)
+    @JvmField val PROPERTY: TextAttributesKey = createTextAttributesKey("ROS_PROPERTY", D.STRING)
+    @JvmField val VALUE: TextAttributesKey = createTextAttributesKey("ROS_VALUE", D.IDENTIFIER)
     @JvmField val STRING: TextAttributesKey = createTextAttributesKey("ROS_STRING", D.STRING)
     @JvmField val ESCAPE: TextAttributesKey = createTextAttributesKey("ROS_ESCAPE", D.VALID_STRING_ESCAPE)
     @JvmField val INVALID_ESCAPE: TextAttributesKey = createTextAttributesKey("ROS_INVALID_ESCAPE", D.INVALID_STRING_ESCAPE)
@@ -27,6 +29,6 @@ object RosHighlighterColors {
     @JvmField val PARENTHESES: TextAttributesKey = createTextAttributesKey("ROS_PARENTHESES", D.PARENTHESES)
     @JvmField val SEMICOLON: TextAttributesKey = createTextAttributesKey("ROS_SEMICOLON", D.SEMICOLON)
     @JvmField val COMMA: TextAttributesKey = createTextAttributesKey("ROS_COMMA", D.COMMA)
-    @JvmField val SLASH: TextAttributesKey = createTextAttributesKey("ROS_SLASH", D.FUNCTION_DECLARATION)
+    @JvmField val SLASH: TextAttributesKey = createTextAttributesKey("ROS_SLASH", PATH)
     @JvmField val BAD_CHARACTER: TextAttributesKey = createTextAttributesKey("ROS_BAD_CHARACTER", HighlighterColors.BAD_CHARACTER)
 }

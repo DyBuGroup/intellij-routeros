@@ -18,6 +18,8 @@
     <lang.syntaxHighlighterFactory language="RouterOS"
                                    implementationClass="dev.dybug.routeros.highlighting.RosSyntaxHighlighterFactory"/>
     <colorSettingsPage implementation="dev.dybug.routeros.highlighting.RosColorSettingsPage"/>
+    <additionalTextAttributes scheme="Default" file="colorSchemes/RouterOSDefault.xml"/>
+    <additionalTextAttributes scheme="Darcula" file="colorSchemes/RouterOSDarcula.xml"/>
     <lang.braceMatcher language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosBraceMatcher"/>
     <lang.commenter language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosCommenter"/>
     <lang.quoteHandler language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosQuoteHandler"/>

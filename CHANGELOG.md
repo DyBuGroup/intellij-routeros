@@ -6,6 +6,13 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-07
+
+### Changed
+
+- WinBox terminal colours: commands purple, menu paths blue, property names green, values in the
+  default text colour (exact colours in the light and dark schemes, similar hues elsewhere)
+
 ## [1.0.1] - 2026-11-07
 
 ### Changed
@@ -46,6 +53,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Runs execute as background jobs so log tail and Stop stay responsive
 - Experimental pseudo-debugger behind an advanced setting
 
-[Unreleased]: https://github.com/dybug/routeros-intellij/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/dybug/routeros-intellij/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/dybug/routeros-intellij/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/dybug/routeros-intellij/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/dybug/routeros-intellij/commits/v1.0.0
