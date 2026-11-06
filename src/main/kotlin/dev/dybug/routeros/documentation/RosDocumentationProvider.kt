@@ -108,7 +108,7 @@ class RosDocumentationProvider : AbstractDocumentationProvider() {
             }
             val extra = buildString {
                 node.packageName?.let { append("<p>Package: <code>").append(escape(it)).append("</code></p>") }
-                append("<p><a href=\"").append(node.docUrl).append("\">CLI reference</a></p>")
+                append("<p><a href=\"").append(escape(node.docUrl)).append("\">CLI reference</a></p>")
             }
             return section("/${node.path.replace('/', ' ')}", node.doc, kind, extra)
         }
@@ -119,7 +119,7 @@ class RosDocumentationProvider : AbstractDocumentationProvider() {
             val extra = buildString {
                 if (arg.rawType.isNotEmpty()) append("<p>Type: <code>").append(escape(arg.rawType.take(300))).append("</code></p>")
                 if (flags.isNotEmpty()) append("<p>").append(flags.joinToString(", ")).append("</p>")
-                owner?.let { append("<p><a href=\"").append(it.docUrl).append("\">CLI reference</a></p>") }
+                owner?.let { append("<p><a href=\"").append(escape(it.docUrl)).append("\">CLI reference</a></p>") }
             }
             return section(arg.name, arg.doc, type, extra)
         }

@@ -12,6 +12,9 @@ import static dev.dybug.routeros.psi.RosTypes.*;
   private int[] stack = new int[16];
   private int[] hashes = new int[16];
   private char[] openers = new char[16];
+  // open brackets of each kind since the innermost string boundary, and their values before each push
+  private int parens = 0, squares = 0, braces = 0;
+  private long[] savedCounts = new long[16];
   private int depth = 0;
   private int hash = 0;
   private int stringFrames = 0;
@@ -25,6 +28,9 @@ import static dev.dybug.routeros.psi.RosTypes.*;
     depth = 0;
     hash = 0;
     stringFrames = 0;
+    parens = 0;
+    squares = 0;
+    braces = 0;
   }
 
   public boolean isStackEmpty() {
@@ -41,6 +47,15 @@ import static dev.dybug.routeros.psi.RosTypes.*;
       stack = java.util.Arrays.copyOf(stack, depth * 2);
       hashes = java.util.Arrays.copyOf(hashes, depth * 2);
       openers = java.util.Arrays.copyOf(openers, depth * 2);
+      savedCounts = java.util.Arrays.copyOf(savedCounts, depth * 2);
+    }
+    savedCounts[depth] = ((long) parens << 42) | ((long) squares << 21) | braces;
+    switch (opener) {
+      case '(': parens++; break;
+      case '[': squares++; break;
+      case '{': braces++; break;
+      case '"': parens = 0; squares = 0; braces = 0; break;
+      default: break;
     }
     hashes[depth] = hash;
     openers[depth] = opener;
@@ -56,6 +71,10 @@ import static dev.dybug.routeros.psi.RosTypes.*;
     }
     depth--;
     hash = hashes[depth];
+    long saved = savedCounts[depth];
+    parens = (int) (saved >>> 42);
+    squares = (int) ((saved >>> 21) & 0x1FFFFF);
+    braces = (int) (saved & 0x1FFFFF);
     if (stack[depth] == STRING) stringFrames--;
     yybegin(stack[depth]);
   }
@@ -74,6 +93,8 @@ import static dev.dybug.routeros.psi.RosTypes.*;
    */
   private void closeBracket(char closer) {
     char opener = closer == ')' ? '(' : closer == ']' ? '[' : '{';
+    int open = closer == ')' ? parens : closer == ']' ? squares : braces;
+    if (open == 0) return; // O(1) for unmatched closers; a successful scan pops what it walks over
     for (int i = depth - 1; i >= 0; i--) {
       if (openers[i] == opener) {
         while (depth > i + 1) pop();
@@ -191,6 +212,8 @@ EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
   "/"                    { return SLASH; }
   "where" / [ \t\f\r\n]  { yybegin(WHERE); return WHERE_KW; }
   {ARG_WORD} / "="       { unglueArrow(); yybegin(ARGS); return argName(false); }
+  // `name =value` is an error on the router, but lexing it as an argument gives a precise inspection
+  {ARG_WORD} / [ \t]+ "=" { unglueArrow(); yybegin(ARGS); return argName(false); }
   {NUMERIC_WORD}         { yybegin(ARGS); return WORD; }
   {ITEM_ID}              { yybegin(ARGS); return WORD; }
   "!" {ARG_WORD}         { yybegin(ARGS); return WORD; }
@@ -208,6 +231,7 @@ EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
 <ARGS> {
   "where" / [ \t\f\r\n]  { yybegin(WHERE); return WHERE_KW; }
   {ARG_WORD} / "="       { unglueArrow(); return argName(false); }
+  {ARG_WORD} / [ \t]+ "=" { unglueArrow(); return argName(false); }
   "="                    { yybegin(VALUE); return EQ; }
 }
 

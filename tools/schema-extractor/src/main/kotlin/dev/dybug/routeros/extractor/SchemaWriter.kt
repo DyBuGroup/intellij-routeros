@@ -60,7 +60,7 @@ object SchemaWriter {
     }
 
     fun writeGzip(json: JsonObject, file: File) {
-        file.parentFile.mkdirs()
+        file.absoluteFile.parentFile?.mkdirs()
         GZIPOutputStream(file.outputStream()).bufferedWriter().use { it.write(json.toString()) }
     }
 

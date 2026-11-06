@@ -38,7 +38,8 @@ object DocsParser {
     private val META = Regex("""^\*\*([A-Za-z -]+):\*\*\s*(.*?)\s*$""")
     private val TYPE = Regex("""^\*\*Type:\*\*\s*(Directory|Settings Directory|Command)\s*$""")
     private val TABLE = Regex("""<ArgTable\s+c1="([^"]*)"[^>]*>(.*?)</ArgTable>""", RegexOption.DOT_MATCHES_ALL)
-    private val ROW = Regex("""<ArgTableRow\s+((?:[a-z]+="[^"]*"\s*)*)>(.*?)</ArgTableRow>""", RegexOption.DOT_MATCHES_ALL)
+    private const val MAX_ROW = 64 * 1024
+    private const val MAX_ATTRIBUTES = 32
     private val ATTR = Regex("""([a-z]+)="([^"]*)"""")
 
     fun parse(text: String): List<DocNode> {
@@ -92,14 +93,15 @@ object DocsParser {
                 "Read-only Argument" -> readOnly
                 else -> args
             }
-            for (row in ROW.findAll(table.groupValues[2])) {
-                val attrs = ATTR.findAll(row.groupValues[1]).associate { it.groupValues[1] to unescape(it.groupValues[2]) }
+            for ((attributes, description) in rows(table.groupValues[2])) {
+                val attrs = ATTR.findAll(attributes).take(MAX_ATTRIBUTES)
+                    .associate { it.groupValues[1] to unescape(it.groupValues[2]) }
                 val name = attrs["arg"]?.trim().orEmpty()
                 if (name.isEmpty()) continue
                 target += DocArg(
                     name = name,
                     type = attrs["typ"].orEmpty().replace(Regex("\\s+"), " ").trim(),
-                    doc = cleanDoc(row.groupValues[2]),
+                    doc = cleanDoc(description),
                     mandatory = attrs["mandatory"] == "1",
                     unset = attrs["unset"] == "1",
                     deprecated = attrs["deprecated"] == "1",
@@ -108,6 +110,30 @@ object DocsParser {
             }
         }
         return DocNode(path, kind, doc, args, readOnly, flags)
+    }
+
+    /**
+     * `<ArgTableRow attrs>description</ArgTableRow>` pairs, scanned iteratively: attribute values may
+     * contain `>` (`typ="enum (<- | ->)"`), and regex repetition over attributes can overflow the stack.
+     */
+    private fun rows(body: String): List<Pair<String, String>> {
+        val result = mutableListOf<Pair<String, String>>()
+        var index = 0
+        while (true) {
+            val start = body.indexOf("<ArgTableRow", index)
+            if (start < 0) return result
+            var pos = start + "<ArgTableRow".length
+            var quoted = false
+            while (pos < body.length && (quoted || body[pos] != '>')) {
+                if (body[pos] == '"') quoted = !quoted
+                pos++
+            }
+            if (pos >= body.length) return result
+            val end = body.indexOf("</ArgTableRow>", pos)
+            if (end < 0) return result
+            if (end - start <= MAX_ROW) result += body.substring(start + "<ArgTableRow".length, pos) to body.substring(pos + 1, end)
+            index = end + "</ArgTableRow>".length
+        }
     }
 
     private fun cleanDoc(raw: String): String? {

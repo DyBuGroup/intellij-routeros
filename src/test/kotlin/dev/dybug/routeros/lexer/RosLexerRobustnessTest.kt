@@ -48,6 +48,13 @@ class RosLexerRobustnessTest : LexerTestCase() {
         assertTrue("deep nesting took too long", System.nanoTime() - started < 5_000_000_000L)
     }
 
+    fun testUnmatchedClosersAreLinear() {
+        val text = "(".repeat(50_000) + "]".repeat(50_000)
+        val started = System.nanoTime()
+        tokenize(text)
+        assertTrue("unmatched closers took too long", System.nanoTime() - started < 5_000_000_000L)
+    }
+
     fun testNoBadCharactersInTestData() {
         for (file in testFiles()) {
             assertNoBadCharacters(file)

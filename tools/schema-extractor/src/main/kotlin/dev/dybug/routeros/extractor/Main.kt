@@ -37,19 +37,28 @@ fun main(args: Array<String>) {
     val previous = SchemaWriter.readGzip(out)
     val overridesJson = if (overrides.isFile) JsonParser.parseString(overrides.readText()).asJsonObject else null
     SchemaWriter.writeGzip(SchemaWriter.toJson(version, source, nodes, overridesJson), out)
-    report.parentFile.mkdirs()
+    report.absoluteFile.parentFile?.mkdirs()
     report.writeText(SchemaWriter.report(version, nodes, previous))
     println("Wrote ${nodes.size} nodes to $out; report: $report")
+}
+
+private const val MAX_SOURCE_BYTES = 64L * 1024 * 1024
+
+private fun readLimited(file: File): String {
+    require(file.length() <= MAX_SOURCE_BYTES) { "$file is larger than $MAX_SOURCE_BYTES bytes" }
+    return file.readText()
 }
 
 private fun load(source: String, cacheDir: File, refresh: Boolean): String {
     if (!source.startsWith("https://")) {
         require(!source.startsWith("http://")) { "plain HTTP sources are not allowed: $source" }
-        return File(source).readText()
+        return readLimited(File(source))
     }
     cacheDir.mkdirs()
-    val cached = File(cacheDir, source.substringAfterLast('/').ifEmpty { "index" }.replace(Regex("[^A-Za-z0-9._-]"), "_"))
-    if (cached.isFile && !refresh) return cached.readText()
+    val key = java.security.MessageDigest.getInstance("SHA-256").digest(source.toByteArray())
+        .joinToString("") { "%02x".format(it) }.take(16)
+    val cached = File(cacheDir, "$key-" + source.substringAfterLast('/').replace(Regex("[^A-Za-z0-9._-]"), "_").take(64))
+    if (cached.isFile && !refresh) return readLimited(cached)
     val client = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(30))
         .followRedirects(HttpClient.Redirect.NORMAL)
@@ -60,11 +69,16 @@ private fun load(source: String, cacheDir: File, refresh: Boolean): String {
         .header("User-Agent", "routeros-intellij-schema-extractor")
         .GET()
         .build()
-    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-    check(response.statusCode() == 200) { "GET $source returned HTTP ${response.statusCode()}" }
-    check(response.uri().scheme == "https") { "redirected to a non-HTTPS URL: ${response.uri()}" }
-    cached.writeText(response.body())
-    return response.body()
+    val response = client.send(request, HttpResponse.BodyHandlers.ofInputStream())
+    response.body().use { body ->
+        check(response.statusCode() == 200) { "GET $source returned HTTP ${response.statusCode()}" }
+        check(response.uri().scheme == "https") { "redirected to a non-HTTPS URL: ${response.uri()}" }
+        val bytes = body.readNBytes((MAX_SOURCE_BYTES + 1).toInt())
+        check(bytes.size <= MAX_SOURCE_BYTES) { "response from $source exceeds $MAX_SOURCE_BYTES bytes" }
+        val text = String(bytes, Charsets.UTF_8)
+        cached.writeText(text)
+        return text
+    }
 }
 
 private fun parseOptions(args: Array<String>): Map<String, String> {

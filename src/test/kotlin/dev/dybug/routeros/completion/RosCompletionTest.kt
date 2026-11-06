@@ -90,4 +90,14 @@ class RosCompletionTest : BasePlatformTestCase() {
         val items = complete("/interface print where <caret>")
         assertTrue(items.toString(), items.containsAll(listOf("name", "running")))
     }
+
+    fun testEnumValuesInsideQuotes() {
+        val items = complete("/ip firewall filter add action=\"dr<caret>\"")
+        assertTrue(items.toString(), items.isEmpty() && myFixture.editor.document.text.contains("\"drop\"") || "drop" in items)
+    }
+
+    fun testPropertiesAfterPositionalArgument() {
+        val items = complete("/ip address print detail <caret>")
+        assertTrue(items.toString(), "without-paging" in items)
+    }
 }

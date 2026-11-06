@@ -21,15 +21,15 @@ class RosSchema(
         var node = root
         var index = 0
         while (index < segments.size) {
+            if (node.kind == SchemaNode.Kind.COMMAND) break
             node = node.children[segments[index]] ?: break
             index++
         }
+        // words after the command word are positional arguments: /ip address print detail, /system script run x
         return when {
-            index == segments.size && node.kind == SchemaNode.Kind.COMMAND ->
-                CommandTarget(node.parent ?: root, node.name, node, consumed = index)
+            node.kind == SchemaNode.Kind.COMMAND -> CommandTarget(node.parent ?: root, node.name, node, consumed = index)
             index == segments.size -> CommandTarget(node, null, null, consumed = index)
-            index == segments.size - 1 && segments[index] in commandsOf(node) ->
-                CommandTarget(node, segments[index], null, consumed = index + 1)
+            segments[index] in commandsOf(node) -> CommandTarget(node, segments[index], null, consumed = index + 1)
             else -> CommandTarget(node, null, null, consumed = index, unknownSegment = segments[index])
         }
     }
@@ -97,7 +97,10 @@ class SchemaNode(
     var flags: Map<String, SchemaArg> = emptyMap()
     val children: MutableMap<String, SchemaNode> = linkedMapOf()
 
-    val docUrl: String get() = "https://manual.mikrotik.com/docs/cli-reference/$path"
+    /** URL of the CLI reference page; segments are URL-encoded so schema text cannot break out of an attribute. */
+    val docUrl: String
+        get() = "https://manual.mikrotik.com/docs/cli-reference/" +
+            path.split('/').joinToString("/") { java.net.URLEncoder.encode(it, Charsets.UTF_8).replace("+", "%20") }
 
     val isMenu: Boolean get() = kind != Kind.COMMAND
 

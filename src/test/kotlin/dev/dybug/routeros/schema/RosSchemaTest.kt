@@ -24,8 +24,11 @@ class RosSchemaTest : TestCase() {
         val context = schema.resolveCommand(listOf("ip", "firewall", "filter"))
         assertNull(context.verb)
         assertTrue(context.isKnown)
-        val positional = schema.resolveCommand(listOf("system", "script", "run", "myscript"))
-        assertFalse(positional.isKnown)
+        val positional = schema.resolveCommand(listOf("tool", "fetch", "https://x"))
+        assertEquals("fetch", positional.verb)
+        assertEquals(2, positional.consumed)
+        assertEquals("print", schema.resolveCommand(listOf("ip", "address", "print", "detail")).verb)
+        assertFalse(schema.resolveCommand(listOf("ip", "nonsense", "x")).isKnown)
     }
 
     fun testArgumentsForAddIncludeEntryProperties() {
