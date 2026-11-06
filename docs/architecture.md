@@ -106,3 +106,13 @@ stream is unchanged (blank lines aside) and that formatting is idempotent.
   mismatch count grows beyond its recorded baseline. Refresh with
   `ROS_URL=https://router ROS_USER=… ROS_PASSWORD=… ./gradlew captureHighlightOracle`
   (plain HTTP only with `ROS_ALLOW_HTTP=true`, for disposable lab routers).
+
+## Compatibility
+
+The plugin compiles against IntelliJ Platform 2025.1 (`sinceBuild = 251`) and is verified
+against IntelliJ IDEA Community 2025.1 and PyCharm 2026.1 locally (the recommended IDE set in
+CI). Kotlin is compiled with `-jvm-default=no-compatibility` so that implementations of platform
+interfaces do not generate bridges into internal API. Three APIs deprecated only in 2026.1
+(`DaemonCodeAnalyzer.restart()`, `XDebuggerManager.startSession`,
+`XDebugSession.getRunContentDescriptor`) are still used because their replacements do not exist
+in 2025.1.

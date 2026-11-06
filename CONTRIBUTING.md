@@ -30,3 +30,20 @@ serial test execution). Stop the daemon with `./gradlew --stop` when done.
 ## Project layout
 
 See [docs/architecture.md](docs/architecture.md).
+
+## Releasing
+
+1. Move the *Unreleased* entries in `CHANGELOG.md` to a new version section.
+2. Set `pluginVersion` in `gradle.properties` (`1.2.0`, or `1.2.0-beta` for the beta channel:
+   the part after `-` up to the first `.` selects the Marketplace channel).
+3. `./gradlew check verifyPlugin buildPlugin`, then a manual smoke test in
+   `./gradlew runPyCharmLocal`: open an export, complete a property, run a script on a lab router.
+4. Commit, tag `vX.Y.Z` and push the tag. `.github/workflows/release.yml` checks that the tag
+   matches `pluginVersion`, signs and publishes the plugin and creates a GitHub release with the
+   changelog section.
+
+Repository secrets (environment `marketplace`): `CERTIFICATE_CHAIN`, `PRIVATE_KEY`,
+`PRIVATE_KEY_PASSWORD` (see *Plugin Signing* in the IntelliJ Platform docs) and `PUBLISH_TOKEN`
+(a JetBrains Marketplace token). The very first upload to the Marketplace must be done by hand
+on plugins.jetbrains.com; `publishPlugin` works only for later versions. Publishing refuses to run
+without signing credentials.

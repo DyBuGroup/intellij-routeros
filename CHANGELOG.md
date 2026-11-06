@@ -6,6 +6,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-06
+
 ### Added
 
 - RouterOS Script language and `.rsc` file type with icon
@@ -23,3 +25,6 @@ and the project uses [Semantic Versioning](https://semver.org/).
   validate on router, open/compare export, schema sync with version banner
 - Runs execute as background jobs so log tail and Stop stay responsive
 - Experimental pseudo-debugger behind an advanced setting
+
+[Unreleased]: https://github.com/dybug/routeros-intellij/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/dybug/routeros-intellij/commits/v1.0.0
