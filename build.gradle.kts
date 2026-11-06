@@ -1,5 +1,6 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
@@ -89,7 +90,13 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            recommended()
+            // CI verifies against the recommended IDE set; locally only against IDEs already on disk
+            if (providers.environmentVariable("CI").isPresent) {
+                recommended()
+            } else {
+                create(IntelliJPlatformType.IntellijIdeaCommunity, providers.gradleProperty("platformVersion"))
+                local(file(providers.gradleProperty("localPyCharmPath").get()))
+            }
         }
     }
 }

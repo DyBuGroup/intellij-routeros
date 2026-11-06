@@ -1,0 +1,345 @@
+<templateSet group="RouterOS">
+  <template name="global" value=":global $V1$ $V2$;$END$" description="Define global variable." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;myVar&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="enum(&quot;0&quot;,&quot;\&quot;\&quot;&quot;,&quot;[]&quot;,&quot;()&quot;)" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="local" value=":local $V1$ $V2$;$END$" description="Define local variable." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;myVar&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="enum(&quot;0&quot;,&quot;\&quot;\&quot;&quot;,&quot;[]&quot;,&quot;()&quot;)" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="beep" value=":beep $V1$ $V2$;$END$" description="Beep built in speaker." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;freq&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="" defaultValue="&quot;length&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="delay" value=":delay $V1$$V2$;$END$" description="Do nothing for a given period of time." toReformat="false" toShortenFQNames="false">
+    <variable name="V2" expression="enum(&quot;s&quot;,&quot;m&quot;,&quot;h&quot;)" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <variable name="V1" expression="" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="put" value=":put $V1$;$END$" description="Put supplied argument to console." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="enum(&quot;[]&quot;,&quot;()&quot;,&quot;\&quot;\&quot;&quot;)" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="len" value=":len $V1$;$END$" description="Return string length or array element count." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;\&quot;length-8\&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="typeof" value=":typeof $V1$;$END$" description="Return data type of variable." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;4&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="pick" value=":pick $V1$ $V2$ $V3$;
+$END$" description="Return range of elements or substring. If end position is not specified, will return only one element from an array." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;\&quot;abcde\&quot;&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="" defaultValue="&quot;1&quot;" alwaysStopAt="true"/>
+    <variable name="V3" expression="" defaultValue="&quot;3&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="log" value=":log $V1$ $V2$;$END$" description="Write message to system log. Available topics are &quot;debug, error, info and warning&quot;." toReformat="false" toShortenFQNames="false">
+    <variable name="V2" expression="" defaultValue="&quot;\&quot;Hello from script\&quot;&quot;" alwaysStopAt="true"/>
+    <variable name="V1" expression="enum(&quot;debug&quot;,&quot;error&quot;,&quot;info&quot;,&quot;warning&quot;)" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="time" value=":time {$V1$};$END$" description="Return interval of time needed to execute command." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="set" value=":set $V1$ $V2$;$END$" description="Assign value to declared variable." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;a&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="" defaultValue="&quot;true&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="find" value=":find $V1$ $V2$ $V3$;$END$" description="Return position of substring or array element." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;\&quot;abc\&quot;&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="" defaultValue="&quot;\&quot;a\&quot;&quot;" alwaysStopAt="true"/>
+    <variable name="V3" expression="" defaultValue="&quot;-1&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="environment" value=":environment $V1$;$END$" description="Print initialized variable information." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;\\$myVar&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="error" value=":error $V1$;$END$" description="Generate console error and stop executing the script." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;\&quot;error message\&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="execute" value=":execute {$V1$};$END$" description="Execute the script in background." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="parse" value=":parse $V1$;$END$" description="Parse string and return parsed console commands. Can be used as function." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;\&quot;:put hello!\&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="resolve" value=":resolve $V1$;$END$" description="Return IP address of given DNS name." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;\&quot;www.mikrotik.com\&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="toarray" value=":toarray $V1$;$END$" description="Convert variable to array." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;myVar&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="tobool" value=":tobool $V1$;$END$" description="Convert variable to boolean." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;myVar&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="toid" value=":toid $V1$;$END$" description="Convert variable to internal ID." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;myVar&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="toip" value=":toip $V1$;$END$" description="Convert variable to IP address." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;myVar&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="toip6" value=":toip6 $V1$;$END$" description="Convert variable to IPv6 address." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;myVar&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="tonum" value=":tonum $V1$;$END$" description="Convert variable to integer." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;myVar&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="tostr" value=":tostr $V1$;$END$" description="Convert variable to string." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;myVar&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="totime" value=":totime $V1$;$END$" description="Convert variable to time." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;myVar&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="add" value="add $V1$;$END$" description="Add new item." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="remove" value="remove $V1$;$END$" description="Remove selected item." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;id&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="enable" value="enable $V1$;$END$" description="Enable selected item." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;id&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="disable" value="disable $V1$;$END$" description="Disable selected item." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;id&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="get" value="get $V1$;$END$" description="Get selected items parameter value." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print" value="print $V1$;$END$" description="Print menu items. Output depends on print parameters specified." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="export" value="export file=$V1$$V2$$V3$.rsc;$END$" description="Export configuration from current menu and its sub-menus (if present). If file parameter is specified output will be written to file with extension &#x27;.rsc&#x27;, otherwise output will be printed to console." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;config&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="" defaultValue="&quot;_&quot;" alwaysStopAt="true"/>
+    <variable name="V3" expression="" defaultValue="&quot;$CURRENT_YEAR$CURRENT_MONTH$CURRENT_DATE$CURRENT_HOUR$CURRENT_MINUTE&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="edit" value="edit $V1$ $V2$;$END$" description="Edit selected items property in built-in text editor." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;id&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="if" value=":if ($V1$) do={ $END$ }" description="If a given condition is true then execute commands in the do block." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;true&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="ifelse" value=":if ($V1$) do={
+	$V2$
+} else={ $END$ }" description="If a given condition is true then execute commands in the do block, otherwise execute commands in the else block if specified." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;true&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="dowhile" value=":do { $V1$ } while ($END$)" description="Execute commands until given condition is met." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="for" value=":for $V1$ from=$V2$ to=$V3$ do={ $END$ }" description="Execute commands over a given number of iterations." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;i&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="" defaultValue="&quot;1&quot;" alwaysStopAt="true"/>
+    <variable name="V3" expression="" defaultValue="&quot;9&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="foreach" value=":foreach $V1$ in=$V2$ do={ $END$ }" description="Execute commands for each elements in list." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;i&quot;" alwaysStopAt="true"/>
+    <variable name="V2" expression="" defaultValue="&quot;array&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="append" value="append$END$" description="append" toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-as-value" value="print as-value$END$" description="Print output as array of parameters and its values." toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-brief" value="print brief$END$" description="Print brief description." toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-detail" value="print detail$END$" description="Print detailed description, output is not as readable as brief output, but may be useful to view all parameters." toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-count-only" value="print count-only$END$" description="Print only count of menu items." toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-file" value="print file=$V1$$END$" description="Print output to file." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;\&quot;fileName\&quot;&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-follow" value="print follow$END$" description="Print all current entries and track new entries until ctrl-c is pressed, very useful when viewing log entries." toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-follow-only" value="print follow-only$END$" description="Print and track only new entries until ctrl-c is pressed, very useful when viewing log entries." toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-from" value="print from=$V1$$END$" description="Print parameters only from specified item." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;admin&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-interval" value="print interval=$V1$$END$" description="Continuously print output in selected time interval, useful to track down changes where follow is not acceptable." toReformat="false" toShortenFQNames="false">
+    <variable name="V1" expression="" defaultValue="&quot;2&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-terse" value="print terse$END$" description="Show details in compact and machine friendly format." toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-value-list" value="print value-list$END$" description="Show  values one per line (good for parsing purposes)." toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-without-paging" value="print without-paging$END$" description="If output do not fit in console screen then do not stop, print all information in one piece." toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="print-where" value="print where $END$" description="Expressions followed by where parameter can be used to filter out matched entries." toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="onerror" value=":onerror $VAR$ in={&#10;    $END$&#10;} do={&#10;    :log error &quot;failed: $$$VAR$&quot;&#10;}" description="Catch errors with :onerror (RouterOS 7.17+)" toReformat="true" toShortenFQNames="false">
+    <variable name="VAR" expression="" defaultValue="&quot;err&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="doerror" value=":do {&#10;    $END$&#10;} on-error={&#10;    :log error &quot;failed&quot;&#10;}" description="Run commands and catch errors with :do on-error" toReformat="true" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="func" value=":global $NAME$ do={&#10;    $END$&#10;    :return $$1&#10;}" description="Declare a global function" toReformat="true" toShortenFQNames="false">
+    <variable name="NAME" expression="" defaultValue="&quot;myFunction&quot;" alwaysStopAt="true"/>
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+  <template name="fw-drop-invalid" value="/ip firewall filter&#10;add action=drop chain=input comment=&quot;drop invalid&quot; connection-state=invalid&#10;$END$" description="Firewall rule: drop invalid connections on input" toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="ROUTEROS" value="true"/>
+    </context>
+  </template>
+</templateSet>

@@ -86,8 +86,22 @@
       <category>RouterOS</category>
     </intentionAction>
     <lang.formatter language="RouterOS" implementationClass="dev.dybug.routeros.formatting.RosFormattingModelBuilder"/>
+    <lang.whiteSpaceFormattingStrategy language="RouterOS"
+                                       implementationClass="dev.dybug.routeros.formatting.RosWhiteSpaceFormattingStrategy"/>
     <langCodeStyleSettingsProvider implementation="dev.dybug.routeros.formatting.RosLanguageCodeStyleSettingsProvider"/>
+    <liveTemplateContext contextId="ROUTEROS" implementation="dev.dybug.routeros.templates.RosTemplateContextType"/>
+    <defaultLiveTemplates file="/liveTemplates/RouterOS.xml"/>
+    <internalFileTemplate name="RouterOS Script"/>
+    <spellchecker.support language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosSpellcheckingStrategy"/>
+    <lang.surroundDescriptor language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosSurroundDescriptor"/>
     <indexPatternBuilder implementation="dev.dybug.routeros.editor.RosIndexPatternBuilder"/>
     <todoIndexer filetype="RouterOS Script" implementationClass="dev.dybug.routeros.editor.RosTodoIndexer"/>
   </extensions>
+
+  <actions>
+    <action id="RouterOS.NewFile" class="dev.dybug.routeros.templates.RosCreateFileAction"
+            icon="/icons/routeros.svg">
+      <add-to-group group-id="NewGroup" anchor="after" relative-to-action="NewFile"/>
+    </action>
+  </actions>
 </idea-plugin>

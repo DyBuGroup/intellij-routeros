@@ -19,6 +19,8 @@ The plugin is a native IntelliJ Platform language plugin written in Kotlin. The 
 | `references` | Variable references, `:set` targets, global index, find usages, rename, Go to Symbol |
 | `inspections` | Local inspections and quick fixes |
 | `intentions` | Intention actions |
+| `formatting` | Formatter, code style settings |
+| `templates` | Live template context, New File action |
 | `injection` | RouterOS injection into script-valued strings, string escaper |
 
 All user-visible strings live in `src/main/resources/messages/RosBundle.properties`.
@@ -73,6 +75,19 @@ and `:set name` (`RosSetTargetReference`) resolve locally first, then to `:globa
 declarations in other files via `RosGlobalIndex` (a file-based index of global names).
 References are soft: inspections report unresolved names as weak warnings, because hook scripts
 and callers can provide variables at runtime.
+
+## Formatter
+
+The formatter is conservative because whitespace is significant in RouterOS:
+
+- line breaks are never removed (statements end at newlines);
+- gaps containing a `\` continuation are read-only (including the continued line's indentation);
+- tokens that touch are never separated (`$ip/24`, `<where>`), except around operators inside
+  `( … )` and inside braces;
+- strings and comments are leaves and never change.
+
+`RosFormatterTest.testCorpusRoundTrip` formats every corpus file twice and checks that the token
+stream is unchanged (blank lines aside) and that formatting is idempotent.
 
 ## Testing
 

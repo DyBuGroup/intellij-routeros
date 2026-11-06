@@ -237,6 +237,7 @@ EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
 
 <SARGS> {
   {ARG_WORD} / "="       { unglueArrow(); return argName(true); }
+  {ARG_WORD} / [ \t]+ "=" { unglueArrow(); return argName(true); }
   "="                    { yybegin(SVALUE); return EQ; }
 }
 

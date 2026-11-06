@@ -24,6 +24,8 @@ files (`.rsc`).
   (did you mean), wrong values, v6 syntax, missing mandatory properties, whitespace before `=`,
   invalid names, `{}` arrays, missing `do=`, unreachable code, misplaced comments
 - Intentions: space ⇄ slash menu paths, quote/unquote values, wrap in `:do { } on-error={ }`
+- Formatter (flat export style by default, optional section indent), code style settings,
+  56 live templates, *New → RouterOS Script*, surround with, spell checking in comments/strings
 - Works fully offline; no router required for editing features
 <!-- Plugin description end -->
 
