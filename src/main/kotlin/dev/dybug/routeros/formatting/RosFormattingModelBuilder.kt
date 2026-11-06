@@ -27,9 +27,12 @@ class RosFormattingModelBuilder : FormattingModelBuilder {
     companion object {
         private val BINARY_OPERATORS = TokenSet.create(
             RosTypes.PLUS, RosTypes.MUL, RosTypes.DIV, RosTypes.MOD, RosTypes.NEQ, RosTypes.LT, RosTypes.GT, RosTypes.LE,
-            RosTypes.GE, RosTypes.ANDAND, RosTypes.OROR, RosTypes.AND_KW, RosTypes.OR_KW, RosTypes.IN_KW, RosTypes.BITAND,
+            RosTypes.GE, RosTypes.ANDAND, RosTypes.OROR, RosTypes.BITAND,
             RosTypes.BITOR, RosTypes.XOR, RosTypes.SHL, RosTypes.SHR, RosTypes.DOT, RosTypes.APPLY,
         )
+
+        /** Word operators must stay separated from their operands whatever the settings say. */
+        private val WORD_OPERATORS = TokenSet.create(RosTypes.AND_KW, RosTypes.OR_KW, RosTypes.IN_KW, RosTypes.NOT_KW)
 
         fun spacingBuilder(settings: CodeStyleSettings): SpacingBuilder {
             val custom = settings.getCustomSettings(RosCodeStyleSettings::class.java)
@@ -37,6 +40,7 @@ class RosFormattingModelBuilder : FormattingModelBuilder {
             val keepBlank = common.KEEP_BLANK_LINES_IN_CODE
             val operatorSpaces = if (custom.SPACE_AROUND_OPERATORS) 1 else 0
             return SpacingBuilder(settings, RosLanguage)
+                .around(WORD_OPERATORS).spacing(1, Int.MAX_VALUE, 0, true, keepBlank)
                 .around(RosTypes.ARROW).spacing(0, 0, 0, true, keepBlank)
                 .before(RosTypes.SEMICOLON).spacing(0, 0, 0, true, keepBlank)
                 .after(RosTypes.SEMICOLON).spacing(1, 1, 0, true, keepBlank)

@@ -2,6 +2,7 @@ package dev.dybug.routeros.references
 
 import com.intellij.psi.PsiElement
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.psi.util.PsiTreeUtil
 import dev.dybug.routeros.psi.RosDeclaration
 
 class RosReferencesTest : BasePlatformTestCase() {
@@ -85,5 +86,17 @@ class RosReferencesTest : BasePlatformTestCase() {
         myFixture.checkResult(":global total 0\n")
         val consumer = myFixture.findFileInTempDir("consumer.rsc")
         assertEquals(":global total\n:put \$total\n", com.intellij.psi.PsiManager.getInstance(project).findFile(consumer)!!.text)
+    }
+
+    fun testRenamedInterpolationResolves() {
+        myFixture.configureByText("a.rsc", ":local a<caret>b 1\n:put \"n=\$ab\"\n")
+        myFixture.renameElementAtCaret("my-name")
+        val variable = PsiTreeUtil.findChildrenOfType(myFixture.file, dev.dybug.routeros.psi.RosVariable::class.java).single()
+        assertEquals("my-name", (variable.reference!!.resolve() as RosDeclaration).name)
+    }
+
+    fun testFindUsagesFindsEscapedSpelling() {
+        myFixture.configureByText("a.rsc", ":local a<caret>b 1\n:put \$\"a\\62\"\n:put \$ab\n")
+        assertEquals(2, myFixture.findUsages(myFixture.elementAtCaret).size)
     }
 }

@@ -36,9 +36,8 @@ class RosVariableReference(element: RosVariable, range: TextRange) : PsiPolyVari
     override fun handleElementRename(newElementName: String): PsiElement {
         val project = element.project
         // inside a string, $"quoted" would end the string: use $($\"name\") instead
-        if (element.parent is RosString && !RosElementFactory.isPlainName(newElementName) &&
-            newElementName.none { it == '"' || it == '\\' }
-        ) {
+        if (element.parent is RosString && !RosElementFactory.isPlainName(newElementName)) {
+            require(newElementName.none { it == '"' || it == '\\' }) { "unsupported variable name" }
             val escaped = newElementName.replace("$", "\\$")
             val created = RosElementFactory.file(project, ":put \"\$(\$\\\"$escaped\\\")\"")
             val interpolation = PsiTreeUtil.findChildOfType(created, RosInterpolation::class.java) ?: return element

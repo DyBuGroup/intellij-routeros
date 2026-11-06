@@ -94,4 +94,14 @@ class RosFormatterTest : BasePlatformTestCase() {
         while (result.lastOrNull() == "\\n") result.removeAt(result.size - 1)
         return result
     }
+
+    fun testWordOperatorsKeepSpacesWhenOperatorSpacingIsOff() {
+        val custom = CodeStyle.getSettings(project).getCustomSettings(RosCodeStyleSettings::class.java)
+        custom.SPACE_AROUND_OPERATORS = false
+        try {
+            assertEquals(":put (\$a and \$b||\$c)\n", format(":put (\$a and \$b || \$c)\n"))
+        } finally {
+            custom.SPACE_AROUND_OPERATORS = true
+        }
+    }
 }

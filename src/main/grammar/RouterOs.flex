@@ -184,6 +184,10 @@ EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
                            return DOLLAR_NAME; }
   "$" / \"               { if (yystate() == YYINITIAL) yybegin(SARGS); else if (yystate() == PATH) yybegin(ARGS);
                            return DOLLAR; }
+  // $\"quoted name\" inside $( … ) / $[ … ] of a string literal
+  "$" / \\ \"            { if (!inInterpolation()) return TokenType.BAD_CHARACTER;
+                           if (yystate() == YYINITIAL) yybegin(SARGS); else if (yystate() == PATH) yybegin(ARGS);
+                           return DOLLAR; }
   "]" | "}" | ")"        { char c = yycharat(0);
                            closeBracket(c);
                            return c == ']' ? RBRACKET : c == '}' ? RBRACE : RPAREN; }

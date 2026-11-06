@@ -28,6 +28,13 @@ class RosSurroundDescriptor : SurroundDescriptor {
     override fun isExclusive(): Boolean = false
 
     private class TextSurrounder(private val key: String, private val wrap: (String) -> String) : Surrounder {
+        /** A closing delimiter after a `# comment` would become part of the comment. */
+        private fun endsWithComment(elements: Array<PsiElement>): Boolean {
+            val last = elements.last()
+            val leaf = last.containingFile.findElementAt(last.textRange.endOffset - 1)
+            return leaf is com.intellij.psi.PsiComment
+        }
+
         override fun getTemplateDescription(): String = RosBundle.message(key)
 
         override fun isApplicable(elements: Array<PsiElement>): Boolean = elements.isNotEmpty()
@@ -36,7 +43,7 @@ class RosSurroundDescriptor : SurroundDescriptor {
             val start = elements.first().textRange.startOffset
             val end = elements.last().textRange.endOffset
             val document = editor.document
-            val text = document.getText(TextRange(start, end))
+            val text = document.getText(TextRange(start, end)) + if (endsWithComment(elements)) "\n" else ""
             val wrapped = wrap(text)
             document.replaceString(start, end, wrapped)
             PsiDocumentManager.getInstance(project).commitDocument(document)

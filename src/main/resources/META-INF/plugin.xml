@@ -41,6 +41,7 @@
                              implementationClass="dev.dybug.routeros.references.RosRefactoringSupportProvider"/>
     <renamePsiElementProcessor implementation="dev.dybug.routeros.references.RosGlobalRenameProcessor"/>
     <findUsagesHandlerFactory implementation="dev.dybug.routeros.references.RosFindUsagesHandlerFactory"/>
+    <referencesSearch implementation="dev.dybug.routeros.references.RosReferencesSearcher"/>
     <gotoSymbolContributor implementation="dev.dybug.routeros.references.RosGotoSymbolContributor"/>
     <localInspection language="RouterOS" shortName="RosUndefinedVariable" displayName="Undefined variable" groupName="RouterOS"
                      enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.dybug.routeros.inspections.RosUndefinedVariableInspection"/>
