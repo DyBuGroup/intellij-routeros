@@ -27,8 +27,11 @@ class RosDeviceSettings : PersistentStateComponent<RosDeviceSettings.State> {
 
     val profiles: List<RouterProfile> get() = state.profiles
 
-    fun profile(name: String?): RouterProfile? =
-        state.profiles.firstOrNull { it.name == name } ?: state.profiles.firstOrNull { it.name == state.defaultProfile } ?: state.profiles.firstOrNull()
+    /** The named profile; the default (or only) profile when [name] is null or empty. Unknown names give null. */
+    fun profile(name: String?): RouterProfile? {
+        if (!name.isNullOrEmpty()) return state.profiles.firstOrNull { it.name == name }
+        return state.profiles.firstOrNull { it.name == state.defaultProfile } ?: state.profiles.firstOrNull()
+    }
 
     fun update(profiles: List<RouterProfile>, defaultProfile: String) {
         state.profiles = profiles.map { it.copy() }.toMutableList()

@@ -44,6 +44,10 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
 
     override fun getDisplayName(): String = RosBundle.message("device.settings.title")
 
+    override fun disposeUIResources() {
+        uiDisposed = true
+    }
+
     override fun createComponent(): JComponent {
         profileCombo.addActionListener {
             saveFields()
@@ -83,15 +87,21 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
         passwords.clear()
         passwordsLoaded = false
         passwordsChanged = false
+        originalKeys.clear()
         current = null
         refreshCombo(profiles.firstOrNull { it.name == defaultName } ?: profiles.firstOrNull())
-        // passwords are loaded lazily off the EDT
-        val snapshot = profiles.toList()
+        // passwords are loaded off the EDT; the field stays read-only until then so no edit is lost
+        passwordField.isEnabled = false
+        val generation = ++loadGeneration
+        val keys = profiles.associateWith { RouterCredentials.key(it) }
+        originalKeys += keys.values
         ApplicationManager.getApplication().executeOnPooledThread {
-            val loaded = snapshot.associateWith { RouterCredentials.password(it) }
+            val loaded = keys.mapValues { (_, key) -> RouterCredentials.password(key) }
             ApplicationManager.getApplication().invokeLater({
+                if (uiDisposed || generation != loadGeneration) return@invokeLater
                 loaded.forEach { (profile, password) -> passwords.putIfAbsent(profile, password) }
                 passwordsLoaded = true
+                passwordField.isEnabled = current != null
                 if (current != null) passwordField.text = passwords[current].orEmpty()
             }, ModalityState.any())
         }
@@ -107,6 +117,11 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
 
     private var passwordsChanged = false
     private var passwordsLoaded = false
+    private var loadGeneration = 0
+    private var uiDisposed = false
+
+    /** Credential keys as loaded, so that keys orphaned by URL/user edits can be removed on apply. */
+    private val originalKeys = mutableSetOf<RouterCredentials.Key>()
 
     override fun apply() {
         saveFields()
@@ -116,9 +131,19 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
         }
         profiles.forEach { RouterRestClient.parseBase(it.url) }
         settings.update(profiles, defaultName.takeIf { it in names } ?: names.firstOrNull().orEmpty())
-        val toStore = if (passwordsChanged) passwords.toMap() else emptyMap()
-        ApplicationManager.getApplication().executeOnPooledThread {
-            toStore.forEach { (profile, password) -> RouterCredentials.store(profile, password.ifEmpty { null }) }
+        // snapshot immutable keys and values now; later UI edits must not change what gets stored
+        val keysChanged = profiles.map { RouterCredentials.key(it) }.toSet() != originalKeys
+        if (passwordsLoaded && (passwordsChanged || keysChanged)) {
+            val toStore = profiles.associate { RouterCredentials.key(it) to passwords[it].orEmpty() }
+            val orphaned = originalKeys - toStore.keys
+            ApplicationManager.getApplication().executeOnPooledThread {
+                synchronized(RouterCredentials) {
+                    orphaned.forEach { RouterCredentials.store(it, null) }
+                    toStore.forEach { (key, password) -> RouterCredentials.store(key, password) }
+                }
+            }
+            originalKeys.clear()
+            originalKeys += toStore.keys
         }
         passwordsChanged = false
     }
@@ -161,7 +186,8 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
     private fun loadFields() {
         val profile = current
         val enabled = profile != null
-        listOf(nameField, urlField, userField, passwordField, tlsCombo, pinField, timeoutSpinner, defaultCheck).forEach { it.isEnabled = enabled }
+        listOf(nameField, urlField, userField, tlsCombo, pinField, timeoutSpinner, defaultCheck).forEach { it.isEnabled = enabled }
+        passwordField.isEnabled = enabled && passwordsLoaded
         if (profile == null) return
         nameField.text = profile.name
         urlField.text = profile.url

@@ -64,10 +64,10 @@ class RosValidateOnRouterAction : RosFileAction() {
             val (_, client) = RouterConnections.client(project, null)
             val problems = if (export) RosRemoteValidator.validateExport(client, text) else RosRemoteValidator.validateScript(client, text)
             ApplicationManager.getApplication().invokeLater {
+                if (editor != null && !editor.isDisposed) mark(editor, problems)
                 if (problems.isEmpty()) {
                     notify(project, RosBundle.message("validate.ok"), NotificationType.INFORMATION)
                 } else {
-                    if (editor != null && !editor.isDisposed) mark(editor, problems)
                     val first = problems.first()
                     notify(project, RosBundle.message("validate.problems", problems.size, first.line, first.message), NotificationType.WARNING)
                     psiFile.virtualFile?.let { OpenFileDescriptor(project, it, first.line - 1, first.column - 1).navigate(true) }

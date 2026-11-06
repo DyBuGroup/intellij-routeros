@@ -37,6 +37,6 @@ enum class TlsMode {
     /** Accept exactly the certificate with the pinned SHA-256 fingerprint (typical for self-signed routers). */
     PINNED,
 
-    /** Accept any certificate. Only for disposable lab routers. */
+    /** Accept any certificate, and allow plain http:// URLs. Only for disposable lab routers. */
     INSECURE,
 }

@@ -43,10 +43,10 @@ class RouterLogTailer(
     private fun poll() {
         try {
             val entries = client.log()
-            val fresh = entries.filter { id(it) > lastId }
             // the router restarted or the log was cleared: ids start over
             val newest = entries.maxOfOrNull { id(it) } ?: lastId
             if (newest < lastId) lastId = -1L
+            val fresh = entries.filter { id(it) > lastId }
             fresh.forEach(::emit)
             if (newest > lastId) lastId = newest
             failures = 0

@@ -37,11 +37,23 @@ class RosLogToolWindowFactory : ToolWindowFactory, DumbAware {
         private val console: ConsoleView = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
         private val filter = SearchTextField(false).apply { textEditor.emptyText.text = RosBundle.message("log.filter.hint") }
 
-        @Volatile
+        private val lock = Any()
         private var tailer: RouterLogTailer? = null
+
+        /** Bumped by every start/stop/dispose; a startup that finishes after a newer transition is discarded. */
+        private var generation = 0
+        private var disposed = false
+
+        @Volatile
+        private var filterText = ""
 
         init {
             Disposer.register(this, console)
+            filter.addDocumentListener(object : com.intellij.ui.DocumentAdapter() {
+                override fun textChanged(e: javax.swing.event.DocumentEvent) {
+                    filterText = filter.text.trim()
+                }
+            })
             val top = JPanel(BorderLayout()).apply { add(filter, BorderLayout.CENTER) }
             val center = JPanel(BorderLayout()).apply {
                 add(top, BorderLayout.NORTH)
@@ -49,7 +61,7 @@ class RosLogToolWindowFactory : ToolWindowFactory, DumbAware {
             }
             setContent(center)
             val group = DefaultActionGroup(object : ToggleAction(RosBundle.message("log.follow"), null, AllIcons.Actions.Execute), DumbAware {
-                override fun isSelected(e: AnActionEvent): Boolean = tailer != null
+                override fun isSelected(e: AnActionEvent): Boolean = synchronized(lock) { tailer != null || starting }
 
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
                     if (state) start() else stop()
@@ -63,38 +75,65 @@ class RosLogToolWindowFactory : ToolWindowFactory, DumbAware {
             setToolbar(toolbar.component)
         }
 
+        private var starting = false
+
         private fun start() {
+            val myGeneration = synchronized(lock) {
+                if (disposed || tailer != null || starting) return
+                starting = true
+                ++generation
+            }
             ApplicationManager.getApplication().executeOnPooledThread {
                 try {
                     val (profile, client) = RouterConnections.client(project, null)
                     console.print(RosBundle.message("log.started", profile.name, profile.url) + "\n", ConsoleViewContentType.SYSTEM_OUTPUT)
-                    tailer = RouterLogTailer(
+                    val created = RouterLogTailer(
                         client,
                         onEntry = { time, topics, message ->
                             val line = "[$time] $topics: $message"
-                            val needle = filter.text.trim()
+                            val needle = filterText
                             if (needle.isEmpty() || line.contains(needle, ignoreCase = true)) {
                                 val type = if ("error" in topics || "critical" in topics) ConsoleViewContentType.ERROR_OUTPUT else ConsoleViewContentType.NORMAL_OUTPUT
                                 console.print(line + "\n", type)
                             }
                         },
                         onError = { console.print(it + "\n", ConsoleViewContentType.ERROR_OUTPUT) },
-                    ).also { it.start(showExisting = 20) }
+                    )
+                    created.start(showExisting = 20)
+                    val keep = synchronized(lock) {
+                        starting = false
+                        if (disposed || generation != myGeneration) {
+                            false
+                        } else {
+                            tailer = created
+                            true
+                        }
+                    }
+                    if (!keep) created.stop()
                 } catch (e: Exception) {
+                    synchronized(lock) { starting = false }
                     console.print((e.message ?: e.javaClass.simpleName) + "\n", ConsoleViewContentType.ERROR_OUTPUT)
                 }
             }
         }
 
         private fun stop() {
-            tailer?.stop()
-            tailer = null
+            val stopped = synchronized(lock) {
+                generation++
+                starting = false
+                tailer.also { tailer = null }
+            }
+            stopped?.stop()
             console.print(RosBundle.message("log.stopped") + "\n", ConsoleViewContentType.SYSTEM_OUTPUT)
         }
 
         override fun dispose() {
-            tailer?.stop()
-            tailer = null
+            val stopped = synchronized(lock) {
+                disposed = true
+                generation++
+                tailer.also { tailer = null }
+            }
+            stopped?.stop()
         }
     }
 }

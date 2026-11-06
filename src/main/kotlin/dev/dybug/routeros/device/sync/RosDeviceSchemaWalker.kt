@@ -14,7 +14,9 @@ class RosDeviceSchemaWalker(
     private val client: RouterRestClient,
     private val skipRootCommands: Set<String>,
     private val maxNodes: Int = 20_000,
+    private val maxRequests: Int = 15_000,
 ) {
+    private val visited = HashSet<String>()
     private val nodes = JsonObject()
     private var requests = 0
 
@@ -27,7 +29,7 @@ class RosDeviceSchemaWalker(
 
     private fun visitMenu(path: List<String>, indicator: ProgressIndicator?) {
         indicator?.checkCanceled()
-        if (nodes.size() >= maxNodes || path.size > 10) return
+        if (nodes.size() >= maxNodes || path.size > 10 || !visited.add(path.joinToString("/"))) return
         indicator?.text2 = "/" + path.joinToString("/")
         val children = children(path)
         val commands = children.filter { it.second == "cmd" }.map { it.first }.toSet()
@@ -45,7 +47,7 @@ class RosDeviceSchemaWalker(
         for ((name, type) in children) {
             when (type) {
                 "dir", "path" -> visitMenu(path + name, indicator)
-                "cmd" -> if (name !in STANDARD_COMMANDS && !(path.isEmpty() && name in skipRootCommands)) {
+                "cmd" -> if (name !in STANDARD_COMMANDS && !(path.isEmpty() && name in skipRootCommands) && nodes.size() < maxNodes) {
                     indicator?.checkCanceled()
                     val node = JsonObject()
                     node.addProperty("kind", "cmd")
@@ -57,12 +59,13 @@ class RosDeviceSchemaWalker(
     }
 
     private fun args(path: List<String>): JsonArray = JsonArray().apply {
-        children(path).filter { it.second == "arg" }.forEach { (name, _) ->
+        children(path).filter { it.second == "arg" && it.first.length < 128 }.take(1000).forEach { (name, _) ->
             add(JsonObject().apply { addProperty("n", name) })
         }
     }
 
     private fun children(path: List<String>): List<Pair<String, String>> {
+        if (requests >= maxRequests) return emptyList()
         requests++
         return client.inspectChildren(path)
     }

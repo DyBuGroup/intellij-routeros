@@ -51,6 +51,8 @@ class RosSchemaSyncAction : AnAction(), DumbAware {
                         ).notify(project)
                     } catch (e: RouterException) {
                         group.createNotification(RosBundle.message("sync.failed", e.message.orEmpty()), NotificationType.ERROR).notify(project)
+                    } catch (e: java.io.IOException) {
+                        group.createNotification(RosBundle.message("sync.failed", e.message.orEmpty()), NotificationType.ERROR).notify(project)
                     }
                 }
             })

@@ -7,13 +7,18 @@ import com.intellij.ide.passwordSafe.PasswordSafe
 
 /** Router passwords in the IDE password safe, keyed by URL and user. Call off the EDT. */
 object RouterCredentials {
-    private fun attributes(profile: RouterProfile) =
-        CredentialAttributes(generateServiceName("RouterOS Script", profile.url.trimEnd('/')), profile.user)
+    /** Identity of a stored password; the service name includes the user so accounts on one router do not collide. */
+    data class Key(val url: String, val user: String)
 
-    fun password(profile: RouterProfile): String =
-        PasswordSafe.instance.get(attributes(profile))?.getPasswordAsString().orEmpty()
+    fun key(profile: RouterProfile) = Key(profile.url.trim().trimEnd('/'), profile.user.trim())
 
-    fun store(profile: RouterProfile, password: String?) {
-        PasswordSafe.instance.set(attributes(profile), password?.let { Credentials(profile.user, it) })
+    private fun attributes(key: Key) = CredentialAttributes(generateServiceName("RouterOS Script", "${key.user}@${key.url}"), key.user)
+
+    fun password(profile: RouterProfile): String = password(key(profile))
+
+    fun password(key: Key): String = PasswordSafe.instance.get(attributes(key))?.getPasswordAsString().orEmpty()
+
+    fun store(key: Key, password: String?) {
+        PasswordSafe.instance.set(attributes(key), password?.takeIf { it.isNotEmpty() }?.let { Credentials(key.user, it) })
     }
 }

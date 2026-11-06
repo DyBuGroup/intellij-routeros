@@ -49,7 +49,11 @@ object RosRemoteValidator {
     /** Extracts `message (line N column M)` entries from router output. */
     fun parseProblems(output: String): List<RouterProblem> = output.lineSequence()
         .mapNotNull { LOCATION.matchEntire(it.trim()) }
-        .map { RouterProblem(it.groupValues[2].toInt(), it.groupValues[3].toInt(), it.groupValues[1].ifBlank { "error" }) }
+        .mapNotNull { match ->
+            val line = match.groupValues[2].toIntOrNull() ?: return@mapNotNull null
+            val column = match.groupValues[3].toIntOrNull() ?: return@mapNotNull null
+            RouterProblem(line, column, match.groupValues[1].ifBlank { "error" })
+        }
         .toList()
 
     fun lineColumn(text: String, offset: Int): Pair<Int, Int> {
