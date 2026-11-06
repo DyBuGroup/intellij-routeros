@@ -14,3 +14,5 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Parser with error recovery (one error per broken line), tested against a script corpus
 - Folding, structure view and breadcrumbs
 - Language injection into script-valued string properties
+- Bundled RouterOS 7.26 schema generated from the official CLI reference
+- Completion, quick documentation, parameter info and schema-aware annotations

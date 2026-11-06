@@ -555,7 +555,10 @@
     "without-paging": "If the output does not fit in the console screen then print all information in a single piece without stops.",
     "where": "Expressions followed by `where` parameters can be used to filter outmatched entries.",
     "about": "Returns entries that have the `about` parameter, such as \"managed by CAPsMAN \" information or warnings",
-    "!comments": "Print the entries without their comment banners; the entries themselves are still shown."
+    "!comments": "Print the entries without their comment banners; the entries themselves are still shown.",
+    "proplist": "Comma-separated list of properties to print.",
+    "oid": "Print SNMP OIDs of the values.",
+    "stats": "Print statistics."
   },
   "entryProperties": [
     {
@@ -583,5 +586,58 @@
     "and",
     "or",
     "in"
+  ],
+  "universalArguments": [
+    {
+      "n": "numbers",
+      "t": "string",
+      "d": "Item numbers or IDs the command applies to (same as the positional argument)."
+    },
+    {
+      "n": "as-value",
+      "t": "switch",
+      "d": "Return the output as an array of values instead of printing it."
+    },
+    {
+      "n": "without-paging",
+      "t": "switch",
+      "d": "Print all output at once without pausing."
+    },
+    {
+      "n": "proplist",
+      "t": "string",
+      "d": "Comma-separated list of properties to show."
+    },
+    {
+      "n": "once",
+      "t": "switch",
+      "d": "Print the output once and stop."
+    },
+    {
+      "n": "interval",
+      "t": "time",
+      "d": "Repeat the output with the given interval."
+    },
+    {
+      "n": "duration",
+      "t": "time",
+      "d": "Stop after the given time."
+    },
+    {
+      "n": "freeze-frame-interval",
+      "t": "time",
+      "d": "Interval between screen refreshes."
+    },
+    {
+      "n": "do",
+      "t": "script",
+      "d": "Script to run for every output frame.",
+      "block": true
+    },
+    {
+      "n": "file",
+      "t": "string",
+      "d": "Write the output to a file."
+    }
   ]
 }

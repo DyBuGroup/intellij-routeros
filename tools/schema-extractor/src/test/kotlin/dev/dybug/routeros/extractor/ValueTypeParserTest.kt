@@ -20,6 +20,7 @@ class ValueTypeParserTest {
         assertEquals(ValueType.Enum(listOf("a", "b", "c"), false), ValueType.parse("enum (a | b | c) { a:0, b:1 }"))
         assertEquals(ValueType.Enum(emptyList(), true), ValueType.parse("enum ()"))
         assertEquals(ValueType.Enum(emptyList(), true), ValueType.parse("enum"))
+        assertEquals(ValueType.Enum(listOf("all"), true), ValueType.parse("enum (all) { all:0 }"))
         assertEquals(ValueType.IfaceEnum(listOf("none")), ValueType.parse("iface_enum { none }"))
         assertEquals(ValueType.UBit(listOf("gateway", "bridge")), ValueType.parse("ubit (gateway, bridge)"))
     }

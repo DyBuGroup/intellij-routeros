@@ -15,6 +15,10 @@ files (`.rsc`).
 - Structure view with export sections, functions and globals; breadcrumbs; code folding
 - RouterOS highlighting inside script strings (`/system script add source="…"`, scheduler
   `on-event`, netwatch/DHCP/PPP script properties)
+- Completion for menu paths, commands, properties (`name=`), values (enums, yes/no,
+  interface names from the file), `:` commands and variables in scope
+- Quick documentation (Ctrl+Q) from the official CLI reference, parameter info (Ctrl+P)
+- Weak warnings for unknown properties and values that do not fit the documented type
 - Works fully offline; no router required for editing features
 <!-- Plugin description end -->
 

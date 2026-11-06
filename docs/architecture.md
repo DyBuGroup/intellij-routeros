@@ -13,6 +13,9 @@ The plugin is a native IntelliJ Platform language plugin written in Kotlin. The 
 | `highlighting` | Syntax highlighter, colour settings page, attribute keys |
 | `editor` | Brace matcher, commenter, quote handler, TODO support |
 | `structure` | Folding, structure view, breadcrumbs |
+| `schema` | Schema model, loader, application service, value types, PSI ↔ schema context |
+| `completion` | Completion contributor, parameter info |
+| `documentation` | Quick documentation provider |
 | `injection` | RouterOS injection into script-valued strings, string escaper |
 
 All user-visible strings live in `src/main/resources/messages/RosBundle.properties`.

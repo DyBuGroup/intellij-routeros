@@ -24,7 +24,16 @@
     <lang.psiStructureViewFactory language="RouterOS"
                                   implementationClass="dev.dybug.routeros.structure.RosStructureViewFactory"/>
     <breadcrumbsInfoProvider implementation="dev.dybug.routeros.structure.RosBreadcrumbsProvider"/>
+    <lang.elementManipulator forClass="dev.dybug.routeros.psi.impl.RosStringImpl"
+                             implementationClass="dev.dybug.routeros.psi.impl.RosStringManipulator"/>
     <multiHostInjector implementation="dev.dybug.routeros.injection.RosScriptInjector"/>
+    <annotator language="RouterOS" implementationClass="dev.dybug.routeros.highlighting.RosAnnotator"/>
+    <completion.contributor language="RouterOS"
+                            implementationClass="dev.dybug.routeros.completion.RosCompletionContributor"/>
+    <codeInsight.parameterInfo language="RouterOS"
+                               implementationClass="dev.dybug.routeros.completion.RosParameterInfoHandler"/>
+    <lang.documentationProvider language="RouterOS"
+                                implementationClass="dev.dybug.routeros.documentation.RosDocumentationProvider"/>
     <indexPatternBuilder implementation="dev.dybug.routeros.editor.RosIndexPatternBuilder"/>
     <todoIndexer filetype="RouterOS Script" implementationClass="dev.dybug.routeros.editor.RosTodoIndexer"/>
   </extensions>

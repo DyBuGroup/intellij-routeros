@@ -12,7 +12,10 @@ sealed interface ValueType {
     data object Str : ValueType
     data object Switch : ValueType
 
-    /** [dynamic] = the values come from the router at runtime (`enum ()` or bare `enum`). */
+    /**
+     * [dynamic] = the set is open: values come from the router at runtime (`enum ()`, bare `enum`),
+     * or the docs list only one or two special values next to runtime names (`enum (all) { all:0 }`).
+     */
     data class Enum(val values: List<String>, val dynamic: Boolean) : ValueType
     data class IfaceEnum(val extra: List<String>) : ValueType
     data object IpAddr : ValueType
@@ -164,7 +167,7 @@ private class TypeParser(private val text: String) {
         }
         val extra = readBraceNames()
         val all = (values + extra).distinct()
-        return ValueType.Enum(all, dynamic = values.isEmpty())
+        return ValueType.Enum(all, dynamic = values.size < 3)
     }
 
     private fun parseSuper(): ValueType {
