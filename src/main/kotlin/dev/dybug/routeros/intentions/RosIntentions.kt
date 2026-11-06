@@ -11,6 +11,7 @@ import dev.dybug.routeros.RosBundle
 import dev.dybug.routeros.inspections.RosQuickFixes
 import dev.dybug.routeros.psi.RosBlock
 import dev.dybug.routeros.psi.RosBracketCommand
+import dev.dybug.routeros.psi.RosDeclaration
 import dev.dybug.routeros.psi.RosFile
 import dev.dybug.routeros.psi.RosNamedArgument
 import dev.dybug.routeros.psi.RosPath
@@ -101,6 +102,8 @@ class RosWrapOnErrorIntention : PsiElementBaseIntentionAction() {
         val parent = candidate.parent
         if (parent !is RosFile && parent !is RosBlock && parent !is RosBracketCommand) return null
         if (candidate.firstChild == null) return null
+        // wrapping a declaration in a block would hide the variable from the following statements
+        if (candidate is RosDeclaration) return null
         return candidate
     }
 }

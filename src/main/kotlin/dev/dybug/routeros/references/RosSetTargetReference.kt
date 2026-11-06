@@ -7,6 +7,7 @@ import com.intellij.psi.PsiPolyVariantReferenceBase
 import com.intellij.psi.ResolveResult
 import dev.dybug.routeros.psi.RosDeclaration
 import dev.dybug.routeros.psi.RosElementFactory
+import dev.dybug.routeros.psi.RosEscapes
 import dev.dybug.routeros.psi.RosPsiUtil
 import dev.dybug.routeros.psi.RosScopes
 import dev.dybug.routeros.psi.RosSetStatement
@@ -16,10 +17,10 @@ import dev.dybug.routeros.psi.RosTypes
 /** The bare (or quoted) variable name in `:set name value`. `:set $x` and `:set ($a->k)` use variable references. */
 class RosSetTargetReference(element: RosSetStatement, range: TextRange, private val target: PsiElement) :
     PsiPolyVariantReferenceBase<RosSetStatement>(element, range, true) {
-    val variableName: String get() = if (target is RosString) RosPsiUtil.stringValue(target) else target.text
+    val variableName: String get() = if (target is RosString) RosEscapes.decode(RosPsiUtil.stringValue(target)) else target.text
 
     fun resolveLocally(): PsiElement? {
-        val declaration = RosScopes.visibleAt(element).firstOrNull { it.name == variableName } ?: return null
+        val declaration = RosScopes.find(element, variableName) ?: return null
         return declaration.element.parent as? RosDeclaration ?: declaration.element
     }
 

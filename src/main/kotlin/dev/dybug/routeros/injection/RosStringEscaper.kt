@@ -3,6 +3,7 @@ package dev.dybug.routeros.injection
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.LiteralTextEscaper
 import com.intellij.psi.PsiLanguageInjectionHost
+import dev.dybug.routeros.psi.RosEscapes
 
 /** Decodes RouterOS string escapes so that injected script text is what the router would store. */
 class RosStringEscaper<T : PsiLanguageInjectionHost>(host: T) : LiteralTextEscaper<T>(host) {
@@ -32,8 +33,8 @@ class RosStringEscaper<T : PsiLanguageInjectionHost>(host: T) : LiteralTextEscap
                     i += if (next == '\r' && i + 2 < text.length && text[i + 2] == '\n') 3 else 2
                     continue
                 }
-                next in SIMPLE -> outChars.append(SIMPLE.getValue(next))
-                isUpperHex(next) && i + 2 < text.length && isUpperHex(text[i + 2]) -> {
+                RosEscapes.simple(next) != null -> outChars.append(RosEscapes.simple(next))
+                RosEscapes.isUpperHex(next) && i + 2 < text.length && RosEscapes.isUpperHex(text[i + 2]) -> {
                     outChars.append(text.substring(i + 1, i + 3).toInt(16).toChar())
                     i += 3
                     continue
@@ -56,13 +57,4 @@ class RosStringEscaper<T : PsiLanguageInjectionHost>(host: T) : LiteralTextEscap
     }
 
     override fun isOneLine(): Boolean = false
-
-    private fun isUpperHex(c: Char) = c in '0'..'9' || c in 'A'..'F'
-
-    private companion object {
-        val SIMPLE = mapOf(
-            '"' to '"', '\\' to '\\', 'n' to '\n', 'r' to '\r', 't' to '\t', '$' to '$', '_' to ' ',
-            'a' to '\u0007', 'b' to '\b', 'f' to '\u000C', 'v' to '\u000B',
-        )
-    }
 }

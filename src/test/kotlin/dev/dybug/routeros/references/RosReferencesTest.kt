@@ -61,4 +61,29 @@ class RosReferencesTest : BasePlatformTestCase() {
         contributor.processNames({ names += it; true }, com.intellij.psi.search.GlobalSearchScope.projectScope(project), null)
         assertTrue(names.toString(), "helperFunction" in names)
     }
+
+    fun testRenameInsideStringUsesInterpolation() {
+        myFixture.configureByText("a.rsc", ":local a<caret>b 1\n:put \"n=\$ab\"\n")
+        myFixture.renameElementAtCaret("my-name")
+        myFixture.checkResult(":local \"my-name\" 1\n:put \"n=\$(\$\\\"my-name\\\")\"\n")
+    }
+
+    fun testEscapedNamesAreCanonical() {
+        myFixture.configureByText("a.rsc", ":local \"a\\62\" 1\n:put \$a<caret>b\n")
+        assertEquals("ab", (resolveAtCaret() as? RosDeclaration)?.name)
+    }
+
+    fun testLoopVariableOnlyInBody() {
+        myFixture.configureByText("a.rsc", ":local item {1;2}\n:foreach item in=\$it<caret>em do={ :put \$item }\n")
+        assertTrue(resolveAtCaret() is RosDeclaration)
+    }
+
+    fun testRenameGlobalAcrossFiles() {
+        myFixture.addFileToProject("consumer.rsc", ":global counter\n:put \$counter\n")
+        myFixture.configureByText("lib.rsc", ":global coun<caret>ter 0\n")
+        myFixture.renameElementAtCaret("total")
+        myFixture.checkResult(":global total 0\n")
+        val consumer = myFixture.findFileInTempDir("consumer.rsc")
+        assertEquals(":global total\n:put \$total\n", com.intellij.psi.PsiManager.getInstance(project).findFile(consumer)!!.text)
+    }
 }

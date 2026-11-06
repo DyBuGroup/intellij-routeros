@@ -39,6 +39,8 @@
     <lang.namesValidator language="RouterOS" implementationClass="dev.dybug.routeros.references.RosNamesValidator"/>
     <lang.refactoringSupport language="RouterOS"
                              implementationClass="dev.dybug.routeros.references.RosRefactoringSupportProvider"/>
+    <renamePsiElementProcessor implementation="dev.dybug.routeros.references.RosGlobalRenameProcessor"/>
+    <findUsagesHandlerFactory implementation="dev.dybug.routeros.references.RosFindUsagesHandlerFactory"/>
     <gotoSymbolContributor implementation="dev.dybug.routeros.references.RosGotoSymbolContributor"/>
     <localInspection language="RouterOS" shortName="RosUndefinedVariable" displayName="Undefined variable" groupName="RouterOS"
                      enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.dybug.routeros.inspections.RosUndefinedVariableInspection"/>
@@ -83,6 +85,8 @@
       <className>dev.dybug.routeros.intentions.RosWrapOnErrorIntention</className>
       <category>RouterOS</category>
     </intentionAction>
+    <lang.formatter language="RouterOS" implementationClass="dev.dybug.routeros.formatting.RosFormattingModelBuilder"/>
+    <langCodeStyleSettingsProvider implementation="dev.dybug.routeros.formatting.RosLanguageCodeStyleSettingsProvider"/>
     <indexPatternBuilder implementation="dev.dybug.routeros.editor.RosIndexPatternBuilder"/>
     <todoIndexer filetype="RouterOS Script" implementationClass="dev.dybug.routeros.editor.RosTodoIndexer"/>
   </extensions>

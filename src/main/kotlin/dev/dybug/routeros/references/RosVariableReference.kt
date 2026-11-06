@@ -9,6 +9,7 @@ import com.intellij.psi.impl.source.resolve.ResolveCache
 import com.intellij.psi.util.PsiTreeUtil
 import dev.dybug.routeros.psi.RosDeclaration
 import dev.dybug.routeros.psi.RosElementFactory
+import dev.dybug.routeros.psi.RosInterpolation
 import dev.dybug.routeros.psi.RosPsiUtil
 import dev.dybug.routeros.psi.RosScopes
 import dev.dybug.routeros.psi.RosString
@@ -28,17 +29,30 @@ class RosVariableReference(element: RosVariable, range: TextRange) : PsiPolyVari
 
     /** Declarations visible in the file only (no cross-file globals). */
     fun resolveLocally(): PsiElement? {
-        val name = variableName
-        val declaration = RosScopes.visibleAt(element).firstOrNull { it.name == name } ?: return null
+        val declaration = RosScopes.find(element, variableName) ?: return null
         return declaration.element.parent as? RosDeclaration ?: declaration.element
     }
 
     override fun handleElementRename(newElementName: String): PsiElement {
+        val project = element.project
+        // inside a string, $"quoted" would end the string: use $($\"name\") instead
+        if (element.parent is RosString && !RosElementFactory.isPlainName(newElementName) &&
+            newElementName.none { it == '"' || it == '\\' }
+        ) {
+            val escaped = newElementName.replace("$", "\\$")
+            val created = RosElementFactory.file(project, ":put \"\$(\$\\\"$escaped\\\")\"")
+            val interpolation = PsiTreeUtil.findChildOfType(created, RosInterpolation::class.java) ?: return element
+            return element.replace(interpolation)
+        }
         val first = element.firstChild
         val indexText = element.text.substring(
-            if (first.node.elementType == RosTypes.DOLLAR_NAME) first.textLength else (PsiTreeUtil.getChildOfType(element, RosString::class.java)?.let { it.startOffsetInParent + it.textLength } ?: element.textLength),
+            if (first.node.elementType == RosTypes.DOLLAR_NAME) {
+                first.textLength
+            } else {
+                PsiTreeUtil.getChildOfType(element, RosString::class.java)?.let { it.startOffsetInParent + it.textLength } ?: element.textLength
+            },
         )
-        val created = RosElementFactory.file(element.project, ":put \$${RosElementFactory.nameText(newElementName)}$indexText")
+        val created = RosElementFactory.file(project, ":put \$${RosElementFactory.nameText(newElementName)}$indexText")
         val replacement = PsiTreeUtil.findChildOfType(created, RosVariable::class.java) ?: return element
         return element.replace(replacement)
     }

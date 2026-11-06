@@ -79,9 +79,10 @@ object RosPsiUtil {
         return next?.takeIf { it.node.elementType == RosTypes.WORD || it is RosString }
     }
 
+    /** Canonical (escape-decoded) name, so that `"a\62"` and `ab` are the same variable. */
     fun declaredName(decl: PsiElement): String? = when (val element = declaredNameElement(decl)) {
         null -> null
-        is RosString -> stringValue(element)
+        is RosString -> RosEscapes.decode(stringValue(element))
         else -> element.text
     }
 
@@ -94,7 +95,7 @@ object RosPsiUtil {
         val first = variable.firstChild ?: return ""
         return when (first.node.elementType) {
             RosTypes.DOLLAR_NAME -> first.text.removePrefix("$")
-            else -> PsiTreeUtil.getChildOfType(variable, RosString::class.java)?.let(::stringValue) ?: ""
+            else -> PsiTreeUtil.getChildOfType(variable, RosString::class.java)?.let { RosEscapes.decode(stringValue(it)) } ?: ""
         }
     }
 

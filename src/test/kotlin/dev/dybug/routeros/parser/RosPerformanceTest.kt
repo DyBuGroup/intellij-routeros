@@ -41,4 +41,20 @@ class RosPerformanceTest : BasePlatformTestCase() {
         assertEquals(1, commands.size)
         assertEquals("/ip address print", commands.single().text)
     }
+
+    /** Highlighting with variable inspections must stay near-linear in the number of variables. */
+    fun testManyVariablesHighlightQuickly() {
+        myFixture.enableInspections(
+            dev.dybug.routeros.inspections.RosUndefinedVariableInspection(),
+            dev.dybug.routeros.inspections.RosUnusedLocalInspection(),
+        )
+        val text = buildString {
+            for (i in 0 until 3000) append(":local v$i $i\n:put (\$v$i + \$missing$i)\n")
+        }
+        myFixture.configureByText("vars.rsc", text)
+        val started = System.nanoTime()
+        myFixture.doHighlighting()
+        val elapsedMs = (System.nanoTime() - started) / 1_000_000
+        assertTrue("highlighting took $elapsedMs ms", elapsedMs < 30_000)
+    }
 }

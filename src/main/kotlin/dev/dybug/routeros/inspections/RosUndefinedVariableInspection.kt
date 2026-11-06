@@ -52,6 +52,7 @@ class RosUndefinedVariableInspection : RosInspectionBase() {
         if (reference.resolveLocally() != null) return
         val name = reference.variableName
         val global = reference.multiResolve(false).isNotEmpty()
+        if (!global && isCallerProvided(statement)) return
         holder.registerProblem(
             statement,
             RosBundle.message(if (global) "inspection.global.not.declared" else "inspection.set.undeclared", name),
@@ -61,7 +62,7 @@ class RosUndefinedVariableInspection : RosInspectionBase() {
     }
 
     /** Function parameters (`$f a=1` → `$a`) and variables that menu commands pass to `do={…}` blocks. */
-    private fun isCallerProvided(variable: RosVariable): Boolean {
+    private fun isCallerProvided(variable: PsiElement): Boolean {
         var block = PsiTreeUtil.getParentOfType(variable, RosBlock::class.java)
         while (block != null) {
             val argument = block.parent as? RosNamedArgument
