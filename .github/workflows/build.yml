@@ -1,9 +1,8 @@
 name: Build
 
+# Manual only, to save Actions minutes: the Release workflow runs the same checks before publishing.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
