@@ -6,13 +6,18 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.2-beta] - 2026-11-07
+
+### Added
+
+- Bundled command reference for MikroTik's stable, long-term and development channels
+  (RouterOS 7.25, 7.24, 7.26); *Automatic* picks the one matching the connected router
+- Weekly workflow that regenerates the schemas and opens a pull request
+- Release workflow can be started manually; security policy
+
 ### Changed
 
 - Licence changed from MIT to the Apache License 2.0
-
-## [1.0.2] - 2026-11-07
-
-### Changed
 
 - WinBox terminal colours: commands purple, menu paths blue, property names green, values in the
   default text colour, in every scheme based on the bundled light or dark schemes (Islands, Dark,
@@ -58,7 +63,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Runs execute as background jobs so log tail and Stop stay responsive
 - Experimental pseudo-debugger behind an advanced setting
 
-[Unreleased]: https://github.com/dybug/routeros-intellij/compare/v1.0.2...HEAD
-[1.0.2]: https://github.com/dybug/routeros-intellij/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/dybug/routeros-intellij/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/dybug/routeros-intellij/commits/v1.0.0
+[Unreleased]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.2-beta...HEAD
+[1.0.2-beta]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.1...v1.0.2-beta
+[1.0.1]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/DyBuGroup/intellij-routeros/commits/v1.0.0
