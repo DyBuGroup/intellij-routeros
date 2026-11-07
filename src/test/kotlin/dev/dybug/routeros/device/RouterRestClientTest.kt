@@ -97,4 +97,19 @@ class RouterRestClientTest : TestCase() {
         fail("expected RouterException")
         error("unreachable")
     }
+
+    fun testLocalRoutersBypassTheProxy() {
+        for (host in listOf("192.168.5.101", "10.0.0.1", "172.16.4.1", "127.0.0.1", "169.254.1.1", "100.64.0.1",
+            "[fd00::1]", "[fe80::1]", "router.lan", "gw.local", "router", "localhost")) {
+            assertTrue(host, RouterConnections.isLocal(host))
+        }
+        for (host in listOf("8.8.8.8", "203.0.113.5", "[2001:db8::1]", "100.128.0.1")) {
+            assertFalse(host, RouterConnections.isLocal(host))
+        }
+        val profile = RouterProfile().apply { url = "http://192.168.5.101" }
+        assertSame(java.net.http.HttpClient.Builder.NO_PROXY, RouterConnections.proxySelector(profile))
+        profile.proxyMode = ProxyMode.NONE
+        profile.url = "https://example.com"
+        assertSame(java.net.http.HttpClient.Builder.NO_PROXY, RouterConnections.proxySelector(profile))
+    }
 }

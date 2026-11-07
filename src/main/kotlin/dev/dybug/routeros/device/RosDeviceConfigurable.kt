@@ -37,6 +37,11 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
     private val userField = JBTextField()
     private val passwordField = JBPasswordField()
     private val tlsCombo = ComboBox(TlsMode.entries.toTypedArray())
+    private val proxyCombo = ComboBox(ProxyMode.entries.toTypedArray()).apply {
+        renderer = com.intellij.ui.SimpleListCellRenderer.create("") { value ->
+            RosBundle.message("device.settings.proxy." + (value ?: ProxyMode.AUTO).name.lowercase())
+        }
+    }
     private val pinField = JBTextField()
     private val timeoutSpinner = JSpinner(SpinnerNumberModel(600, 5, 86_400, 5))
     private val defaultCheck = JBCheckBox(RosBundle.message("device.settings.default"))
@@ -83,6 +88,7 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
             row(RosBundle.message("device.settings.user")) { cell(userField).align(AlignX.FILL) }
             row(RosBundle.message("device.settings.password")) { cell(passwordField).align(AlignX.FILL) }
             row(RosBundle.message("device.settings.tls")) { cell(tlsCombo) }
+            row(RosBundle.message("device.settings.proxy")) { cell(proxyCombo).comment(RosBundle.message("device.settings.proxy.comment")) }
             row(RosBundle.message("device.settings.pin")) {
                 cell(pinField).align(AlignX.FILL).resizableColumn()
                 cell(JButton(RosBundle.message("device.settings.pin.fetch")).apply { addActionListener { fetchPin() } })
@@ -200,7 +206,8 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
     }
 
     private fun same(a: RouterProfile, b: RouterProfile) = a.name == b.name && a.url == b.url && a.user == b.user &&
-        a.tlsMode == b.tlsMode && a.pinnedSha256 == b.pinnedSha256 && a.timeoutSeconds == b.timeoutSeconds
+        a.tlsMode == b.tlsMode && a.pinnedSha256 == b.pinnedSha256 && a.timeoutSeconds == b.timeoutSeconds &&
+        a.proxyMode == b.proxyMode
 
     private fun addProfile() {
         saveFields()
@@ -237,7 +244,7 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
     private fun loadFields() {
         val profile = current
         val enabled = profile != null
-        listOf(nameField, urlField, userField, tlsCombo, pinField, timeoutSpinner, defaultCheck).forEach { it.isEnabled = enabled }
+        listOf(nameField, urlField, userField, tlsCombo, proxyCombo, pinField, timeoutSpinner, defaultCheck).forEach { it.isEnabled = enabled }
         passwordField.isEnabled = enabled && passwordsLoaded
         if (profile == null) return
         nameField.text = profile.name
@@ -245,6 +252,7 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
         userField.text = profile.user
         passwordField.text = passwords[profile].orEmpty()
         tlsCombo.selectedItem = profile.tlsMode
+        proxyCombo.selectedItem = profile.proxyMode
         pinField.text = profile.pinnedSha256
         timeoutSpinner.value = profile.timeoutSeconds
         defaultCheck.isSelected = profile.name == defaultName
@@ -266,6 +274,7 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
             passwordsChanged = true
         }
         profile.tlsMode = tlsCombo.selectedItem as? TlsMode ?: TlsMode.VERIFY
+        profile.proxyMode = proxyCombo.selectedItem as? ProxyMode ?: ProxyMode.AUTO
         profile.pinnedSha256 = pinField.text.trim().lowercase().replace(":", "")
         profile.timeoutSeconds = (timeoutSpinner.value as? Int) ?: 600
         if (defaultCheck.isSelected) {

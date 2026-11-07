@@ -14,6 +14,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
   (RouterOS 7.25, 7.24, 7.26); *Automatic* picks the one matching the connected router
 - Monthly workflow that regenerates the schemas and opens a pull request
 - Release workflow can be started manually; security policy
+- Per-connection proxy setting; by default routers on the local network are reached directly
+  instead of through the IDE's HTTP proxy
 
 ### Changed
 

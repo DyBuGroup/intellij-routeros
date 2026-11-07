@@ -13,6 +13,7 @@ class RouterProfile {
     /** SHA-256 of the router certificate (hex, colon-free) when [tlsMode] is [TlsMode.PINNED]. */
     var pinnedSha256: String = ""
     var timeoutSeconds: Int = 600
+    var proxyMode: ProxyMode = ProxyMode.AUTO
 
     /** Last RouterOS version seen by "Test connection" (drives the schema banner). */
     var lastSeenVersion: String = ""
@@ -24,10 +25,22 @@ class RouterProfile {
         it.tlsMode = tlsMode
         it.pinnedSha256 = pinnedSha256
         it.timeoutSeconds = timeoutSeconds
+        it.proxyMode = proxyMode
         it.lastSeenVersion = lastSeenVersion
     }
 
     override fun toString(): String = name
+}
+
+enum class ProxyMode {
+    /** Direct for local addresses (private, loopback, link-local, `.local`/`.lan`, single-label names), else the IDE proxy. */
+    AUTO,
+
+    /** Always the IDE's HTTP proxy settings. */
+    IDE,
+
+    /** Never a proxy. */
+    NONE,
 }
 
 enum class TlsMode {

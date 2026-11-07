@@ -19,6 +19,12 @@ TLS modes:
 
 Plain `http://` sends the password unencrypted, so it is accepted only in INSECURE mode.
 
+Proxy: *Automatic* (default) connects directly to routers on the local network — private,
+loopback and link-local addresses, `.local`/`.lan`/`.home.arpa` names and single-label host
+names — and uses the IDE's HTTP proxy settings for anything else. *IDE proxy settings* always uses
+the proxy, *No proxy* never does. An `HTTP 503` page from Squid or another proxy when running a
+script means the request went through a proxy that cannot reach the router.
+
 Create a dedicated user. Validation and schema sync need `read,test,api,rest-api`; running
 scripts also needs `write` plus whatever policies the scripts themselves use:
 
