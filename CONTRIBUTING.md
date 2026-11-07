@@ -21,6 +21,11 @@
 The build is tuned to stay light (`org.gradle.workers.max=2`, limited heap,
 serial test execution). Stop the daemon with `./gradlew --stop` when done.
 
+## Licence of contributions
+
+The project is licensed under the [Apache License 2.0](LICENSE). By submitting a contribution you
+agree that it is licensed under the same terms (section 5 of the licence).
+
 ## Commit conventions
 
 [Conventional Commits](https://www.conventionalcommits.org/):

@@ -6,6 +6,10 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Licence changed from MIT to the Apache License 2.0
+
 ## [1.0.2] - 2026-11-07
 
 ### Changed

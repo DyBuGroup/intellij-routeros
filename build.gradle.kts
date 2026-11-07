@@ -119,6 +119,13 @@ sourceSets {
 }
 
 tasks {
+    // Apache-2.0 §4: LICENSE and NOTICE travel with every distributed copy
+    processResources {
+        from(files("LICENSE", "NOTICE", "THIRD-PARTY-NOTICES.md")) {
+            into("META-INF")
+        }
+    }
+
     generateLexer {
         sourceFile = file("src/main/grammar/RouterOs.flex")
     }

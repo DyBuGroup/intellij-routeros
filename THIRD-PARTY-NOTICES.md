@@ -1,5 +1,8 @@
 # Third-party notices
 
+The plugin itself is licensed under the Apache License 2.0. The components below keep their own
+licences, all of which are compatible with it.
+
 ## vscode_mikrotik_routeros_script (MIT)
 
 The live templates in `src/main/resources/liveTemplates/RouterOS.xml` are ported from the
