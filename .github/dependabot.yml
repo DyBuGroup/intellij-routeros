@@ -1,10 +1,17 @@
 version: 2
+# Monthly, one grouped pull request per ecosystem, to keep Actions minutes low
 updates:
   - package-ecosystem: gradle
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      gradle:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

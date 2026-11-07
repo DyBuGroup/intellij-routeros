@@ -80,10 +80,13 @@ intellijPlatform {
         }
     }
 
+    // Optional: without CERTIFICATE_CHAIN and PRIVATE_KEY, signPlugin is skipped and the unsigned
+    // zip is published (Marketplace signs it with the JetBrains certificate either way).
+    // Blank values count as unset, since GitHub passes missing secrets as empty strings.
     signing {
-        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
-        privateKey = providers.environmentVariable("PRIVATE_KEY")
-        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN").filter { it.isNotBlank() }
+        privateKey = providers.environmentVariable("PRIVATE_KEY").filter { it.isNotBlank() }
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD").filter { it.isNotBlank() }
     }
 
     publishing {
@@ -95,11 +98,10 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            // CI verifies against the recommended IDE set; locally only against IDEs already on disk
-            if (providers.environmentVariable("CI").isPresent) {
-                recommended()
-            } else {
-                create(IntelliJPlatformType.IntellijIdeaCommunity, providers.gradleProperty("platformVersion"))
+            // One IDE only (the build platform, already downloaded) to keep CI light on disk;
+            // locally also the installed PyCharm
+            create(IntelliJPlatformType.IntellijIdeaCommunity, providers.gradleProperty("platformVersion"))
+            if (!providers.environmentVariable("CI").isPresent) {
                 local(file(providers.gradleProperty("localPyCharmPath").get()))
             }
         }
@@ -154,16 +156,6 @@ tasks {
         filter.includeTestsMatching("dev.dybug.routeros.oracle.*")
         outputs.upToDateWhen { false }
         notCompatibleWithConfigurationCache("maintainer task that talks to a live router")
-    }
-
-    publishPlugin {
-        val signingConfigured = providers.environmentVariable("CERTIFICATE_CHAIN").isPresent &&
-            providers.environmentVariable("PRIVATE_KEY").isPresent
-        doFirst {
-            if (!signingConfigured) {
-                throw GradleException("Refusing to publish an unsigned plugin: CERTIFICATE_CHAIN and PRIVATE_KEY must be set")
-            }
-        }
     }
 }
 

@@ -9,7 +9,7 @@ import java.util.function.Supplier
 @NonNls
 private const val BUNDLE = "messages.RosBundle"
 
-object RosBundle : DynamicBundle(BUNDLE) {
+object RosBundle : DynamicBundle(RosBundle::class.java, BUNDLE) {
     @JvmStatic
     @Nls
     fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): String =

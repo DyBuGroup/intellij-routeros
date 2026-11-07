@@ -13,7 +13,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.editor.colors.CodeInsightColors
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -119,7 +118,7 @@ class RosFetchExportAction : AnAction(), DumbAware {
             val export = client.execute("/export")
             ApplicationManager.getApplication().invokeLater({
                 val file = LightVirtualFile("${profile.name}-export.rsc", RosFileType, export)
-                FileEditorManager.getInstance(project).openFile(file, true)
+                OpenFileDescriptor(project, file).navigate(true)
             }, project.disposed)
         }
     }
