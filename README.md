@@ -57,6 +57,8 @@ files (`.rsc`).
 
 ![Quick documentation from the CLI reference](docs/images/documentation.png)
 
+![Running a script on a router, with the router log in the console](docs/images/run.png)
+
 ![Router connection settings](docs/images/connection-settings.png)
 
 ## RouterOS versions
