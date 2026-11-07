@@ -39,4 +39,26 @@ class RosColorsTest : BasePlatformTestCase() {
         }
         assertTrue("no bundled colour scheme found", checked > 0)
     }
+
+    /** A theme's own colour for a fallback key must never override ours: the keys have no fallback. */
+    fun testWinBoxKeysHaveNoFallback() {
+        for (key in listOf(RosHighlighterColors.COMMAND, RosHighlighterColors.PATH, RosHighlighterColors.SLASH,
+            RosHighlighterColors.PROPERTY, RosHighlighterColors.VALUE)) {
+            assertNull(key.externalName, key.fallbackAttributeKey)
+        }
+    }
+
+    /** A scheme that colours numbers, strings and fields itself (like Monokai) still shows WinBox colours. */
+    fun testThirdPartySchemeInheritsColours() {
+        val darcula = com.intellij.openapi.editor.colors.EditorColorsManager.getInstance().getScheme("Darcula") ?: return
+        val custom = (darcula as com.intellij.openapi.editor.colors.impl.AbstractColorsScheme).clone() as com.intellij.openapi.editor.colors.EditorColorsScheme
+        val red = com.intellij.openapi.editor.markup.TextAttributes().apply { foregroundColor = java.awt.Color.RED }
+        for (key in listOf(DefaultLanguageHighlighterColors.NUMBER, DefaultLanguageHighlighterColors.STRING,
+            DefaultLanguageHighlighterColors.INSTANCE_FIELD, DefaultLanguageHighlighterColors.IDENTIFIER)) {
+            custom.setAttributes(key, red)
+        }
+        assertEquals(0x56a8f5, custom.getAttributes(RosHighlighterColors.PATH)?.foregroundColor?.rgb?.and(0xffffff))
+        assertEquals(0x6aab73, custom.getAttributes(RosHighlighterColors.PROPERTY)?.foregroundColor?.rgb?.and(0xffffff))
+        assertNull(custom.getAttributes(RosHighlighterColors.VALUE)?.foregroundColor)
+    }
 }

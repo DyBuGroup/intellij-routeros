@@ -11,7 +11,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - WinBox terminal colours: commands purple, menu paths blue, property names green, values in the
-  default text colour (exact colours in the light and dark schemes, similar hues elsewhere)
+  default text colour, in every scheme based on the bundled light or dark schemes (Islands, Dark,
+  Light, High contrast…) and in Monokai schemes (using Monokai's own purple, blue and green)
 
 ## [1.0.1] - 2026-11-07
 

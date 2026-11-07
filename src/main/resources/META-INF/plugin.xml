@@ -20,6 +20,17 @@
     <colorSettingsPage implementation="dev.dybug.routeros.highlighting.RosColorSettingsPage"/>
     <additionalTextAttributes scheme="Default" file="colorSchemes/RouterOSDefault.xml"/>
     <additionalTextAttributes scheme="Darcula" file="colorSchemes/RouterOSDarcula.xml"/>
+    <!-- Monokai schemes from theme plugins: the same roles in Monokai's own purple, blue and green -->
+    <additionalTextAttributes scheme="Monokai" file="colorSchemes/RouterOSMonokai.xml"/>
+    <additionalTextAttributes scheme="Monokai Sublime" file="colorSchemes/RouterOSMonokai.xml"/>
+    <additionalTextAttributes scheme="Monokai Dark Soda" file="colorSchemes/RouterOSMonokai.xml"/>
+    <additionalTextAttributes scheme="Monokai Classic" file="colorSchemes/RouterOSMonokai.xml"/>
+    <additionalTextAttributes scheme="Monokai Pro" file="colorSchemes/RouterOSMonokaiPro.xml"/>
+    <additionalTextAttributes scheme="Monokai Pro (Classic)" file="colorSchemes/RouterOSMonokaiPro.xml"/>
+    <additionalTextAttributes scheme="Monokai Pro (Filter Machine)" file="colorSchemes/RouterOSMonokaiPro.xml"/>
+    <additionalTextAttributes scheme="Monokai Pro (Filter Octagon)" file="colorSchemes/RouterOSMonokaiPro.xml"/>
+    <additionalTextAttributes scheme="Monokai Pro (Filter Ristretto)" file="colorSchemes/RouterOSMonokaiPro.xml"/>
+    <additionalTextAttributes scheme="Monokai Pro (Filter Spectrum)" file="colorSchemes/RouterOSMonokaiPro.xml"/>
     <lang.braceMatcher language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosBraceMatcher"/>
     <lang.commenter language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosCommenter"/>
     <lang.quoteHandler language="RouterOS" implementationClass="dev.dybug.routeros.editor.RosQuoteHandler"/>
