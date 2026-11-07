@@ -30,7 +30,7 @@ version not newer than the router, otherwise stable.
 ./gradlew :tools:schema-extractor:run --args="--version 7.26"    # one version
 ```
 
-The **Update RouterOS schemas** GitHub workflow runs `--channels` weekly and opens a pull request.
+The **Update RouterOS schemas** GitHub workflow runs `--channels` monthly and opens a pull request.
 
 Options: `--source URL|FILE` (HTTPS only, or a local file), `--out`, `--overrides`,
 `--cache DIR` (default `build/schema-cache/<version>`), `--report`, `--refresh`.

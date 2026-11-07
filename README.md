@@ -54,7 +54,7 @@ files (`.rsc`).
 The plugin bundles the command reference of MikroTik's **stable**, **long-term** and
 **development** release channels (currently RouterOS 7.25, 7.24 and 7.26). *Settings → Languages &
 Frameworks → RouterOS → RouterOS version* chooses one, or *Automatic* follows the connected router.
-A weekly workflow regenerates the schemas when MikroTik publishes new releases.
+A monthly workflow regenerates the schemas when MikroTik publishes new releases.
 
 ## Documentation
 

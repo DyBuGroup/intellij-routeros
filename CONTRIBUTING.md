@@ -53,4 +53,4 @@ See [docs/architecture.md](docs/architecture.md).
 
 `./gradlew :tools:schema-extractor:run --args="--channels"` regenerates the schemas of all release
 channels (see [docs/schema.md](docs/schema.md)). The **Update RouterOS schemas** workflow does the
-same every Monday and opens a pull request when something changed.
+same on the 1st of every month and opens a pull request when something changed.

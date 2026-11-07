@@ -1,10 +1,10 @@
 name: Update RouterOS schemas
 
-# Weekly: ask MikroTik for the current stable, long-term and development releases, regenerate the
+# Monthly: ask MikroTik for the current stable, long-term and development releases, regenerate the
 # bundled schemas from the manual and open a pull request when anything changed.
 on:
   schedule:
-    - cron: "17 3 * * 1"
+    - cron: "17 3 1 * *"
   workflow_dispatch:
 
 permissions:

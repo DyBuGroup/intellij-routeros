@@ -12,7 +12,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 - Bundled command reference for MikroTik's stable, long-term and development channels
   (RouterOS 7.25, 7.24, 7.26); *Automatic* picks the one matching the connected router
-- Weekly workflow that regenerates the schemas and opens a pull request
+- Monthly workflow that regenerates the schemas and opens a pull request
 - Release workflow can be started manually; security policy
 
 ### Changed
