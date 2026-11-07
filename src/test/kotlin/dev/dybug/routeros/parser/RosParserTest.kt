@@ -38,4 +38,5 @@ class RosParserTest : ParsingTestCase("parser", "rsc", RosParserDefinition()) {
     fun testNumericArgs() = doTest()
     fun testBrokenLine() = doTest(true, false)
     fun testUnclosedBlock() = doTest(true, false)
+    fun testBareScriptCommands() = doTest()
 }

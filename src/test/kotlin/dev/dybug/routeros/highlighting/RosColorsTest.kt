@@ -23,6 +23,18 @@ class RosColorsTest : BasePlatformTestCase() {
         assertEquals(DefaultLanguageHighlighterColors.CLASS_REFERENCE, keys["\$lanAddress"]!!.fallbackAttributeKey)
     }
 
+    /** Under a menu the schema does not know (/interface wifiwave2, RouterOS 7.6), set and find are still commands. */
+    fun testCommandUnderUnknownMenu() {
+        myFixture.configureByText(
+            "default.rsc",
+            "/interface wifiwave2\nset [ find default-name=wifi1 ] disabled=no\n/interface wifiwave2 add name=x\n",
+        )
+        val commands = myFixture.doHighlighting()
+            .filter { it.forcedTextAttributesKey == RosHighlighterColors.COMMAND }
+            .map { it.text }
+        assertEquals(listOf("set", "find", "add"), commands)
+    }
+
     /** WinBox style in the bundled light and dark schemes: command purple, path blue, property green, value plain. */
     fun testSchemeColours() {
         val manager = com.intellij.openapi.editor.colors.EditorColorsManager.getInstance()

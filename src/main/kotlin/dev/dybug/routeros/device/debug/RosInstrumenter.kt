@@ -84,7 +84,7 @@ class RosInstrumenter(val token: String) {
         val direct = when (val parent = block.parent) {
             is RosNamedArgument -> isCodeArgument(parent)
             // :execute runs its block as a separate background job: it must not share our pause state
-            is RosScriptCommand -> parent.firstChild?.text in setOf(":do", ":onerror")
+            is RosScriptCommand -> parent.firstChild?.text?.removePrefix(":") in setOf("do", "onerror")
             // a bare block statement parses as a command whose only argument is the block
             is RosCommand -> parent.path == null && RosPsiUtil.arguments(parent).singleOrNull() === block
             else -> false
@@ -103,8 +103,8 @@ class RosInstrumenter(val token: String) {
         val owner = argument.parent
         return when {
             owner is dev.dybug.routeros.psi.RosGlobalDecl || owner is dev.dybug.routeros.psi.RosSetStatement -> false
-            owner is RosScriptCommand && owner.firstChild?.text == ":execute" -> false
-            name == "in" -> owner is RosScriptCommand && owner.firstChild?.text == ":onerror"
+            owner is RosScriptCommand && owner.firstChild?.text?.removePrefix(":") == "execute" -> false
+            name == "in" -> owner is RosScriptCommand && owner.firstChild?.text?.removePrefix(":") == "onerror"
             else -> name in CODE_ARGUMENTS
         }
     }

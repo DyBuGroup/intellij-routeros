@@ -119,7 +119,8 @@ import static dev.dybug.routeros.psi.RosTypes.*;
   }
 
   private IElementType scriptCommand() {
-    String name = yytext().subSequence(1, yylength()).toString();
+    String text = yytext().toString();
+    String name = text.startsWith(":") ? text.substring(1) : text;
     yybegin(SARGS);
     switch (name) {
       case "local": return CMD_LOCAL;
@@ -154,6 +155,10 @@ COMMENT = "#" [^\r\n]*
 
 VAR_NAME = [A-Za-z0-9_]+
 CMD_NAME = [A-Za-z] [A-Za-z0-9\-]*
+// script commands RouterOS also accepts without ':' (MikroTik's own default configuration writes
+// `if (…) do={…}`); set, find and log are left out because they are also menu commands
+BARE_SCRIPT_CMD = "if" | "foreach" | "for" | "while" | "do" | "local" | "global" | "put" | "delay"
+  | "return" | "error" | "onerror" | "retry" | "execute" | "jobname"
 
 PATH_WORD = [^ \t\f\r\n;=\[\](){}\"#$\\/<>]+
 NUMERIC_WORD = [0-9]+ ([.:,\-/] [^ \t\f\r\n;=\[\](){}\"#$\\<>]*)?
@@ -204,6 +209,8 @@ EXPR_WORD = [A-Za-z_] ([A-Za-z0-9_] | "-" [A-Za-z0-9_])*
 // ---------------------------------------------------------------- statement start
 <YYINITIAL> {
   ":" {CMD_NAME}         { return scriptCommand(); }
+  {BARE_SCRIPT_CMD} / [ \t\f\r\n;({] { return scriptCommand(); }
+  {BARE_SCRIPT_CMD} / {CONT}  { return scriptCommand(); }
   "/"                    { yybegin(PATH); return SLASH; }
   "{"                    { enter(YYINITIAL, YYINITIAL); return LBRACE; }
   "["                    { enter(ARGS, YYINITIAL); return LBRACKET; }

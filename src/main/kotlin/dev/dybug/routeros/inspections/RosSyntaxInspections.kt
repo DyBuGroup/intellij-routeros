@@ -84,13 +84,13 @@ class RosMissingDoBlockInspection : RosInspectionBase() {
     override fun visit(element: PsiElement, holder: ProblemsHolder) {
         if (element !is RosScriptCommand) return
         val keyword = element.firstChild ?: return
-        if (keyword.text !in LOOPS) return
+        if (keyword.text.removePrefix(":") !in LOOPS) return
         if (RosPsiUtil.namedArguments(element).any { RosPsiUtil.argumentName(it) == "do" }) return
         holder.registerProblem(keyword, RosBundle.message("inspection.missing.do", keyword.text), ProblemHighlightType.GENERIC_ERROR_OR_WARNING)
     }
 
     private companion object {
-        val LOOPS = setOf(":if", ":while", ":for", ":foreach")
+        val LOOPS = setOf("if", "while", "for", "foreach")
     }
 }
 
@@ -99,7 +99,7 @@ class RosUnreachableCodeInspection : RosInspectionBase() {
     override fun visit(element: PsiElement, holder: ProblemsHolder) {
         if (element !is RosScriptCommand) return
         val keyword = element.firstChild?.text ?: return
-        if (keyword != ":return" && keyword != ":error") return
+        if (keyword.removePrefix(":") != "return" && keyword.removePrefix(":") != "error") return
         if (element.parent !is RosBlock && element.parent !is RosFile) return
         var next = element.nextSibling
         var first: PsiElement? = null

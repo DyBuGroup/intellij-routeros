@@ -34,16 +34,26 @@ class RosAnnotator : Annotator {
         val schema = RosSchemaService.schema(command.project) ?: return
         val path = command.path
         val target = RosSchemaContext.target(command, schema)
-        if (path != null) colorPath(command, target, holder)
+        if (path != null) colorPath(command, target, schema, holder)
     }
 
-    private fun colorPath(command: RosCommand, target: RosSchema.CommandTarget, holder: AnnotationHolder) {
+    private fun colorPath(command: RosCommand, target: RosSchema.CommandTarget, schema: RosSchema, holder: AnnotationHolder) {
         val path = command.path ?: return
         val words = generateSequence(path.firstChild) { it.nextSibling }.filter { it.elementType == RosTypes.PATH_WORD }.toList()
         if (words.isEmpty()) return
         val contextSize = if (RosPsiUtil.isAbsolute(path)) 0 else RosPsiUtil.menuContextAt(command).size
         // index (within this path) of the command word, if it was recognised
-        val verbIndex = if (target.verb != null) target.consumed - 1 - contextSize else -1
+        val verbIndex = when {
+            target.verb != null -> target.consumed - 1 - contextSize
+            // menu not in this schema (older or renamed, e.g. /interface wifiwave2 from RouterOS 7.6):
+            // the first standard command word after the known part is still the command
+            !target.isKnown -> {
+                val standard = schema.builtins.listCommands + schema.builtins.settingsCommands
+                val from = (target.consumed - contextSize).coerceAtLeast(0)
+                (from until words.size).firstOrNull { words[it].text in standard } ?: -1
+            }
+            else -> -1
+        }
         val dotDot = words.count { it.text == ".." }
         words.forEachIndexed { index, word ->
             val key = when {

@@ -149,8 +149,8 @@ object RosScopes {
     /** `:foreach x in=…`, `:foreach k,v in=…`, `:for i from=…`, `:onerror e in=…` declare a variable. */
     fun loopVariable(statement: PsiElement): Declaration? {
         if (statement !is RosScriptCommand) return null
-        val name = statement.firstChild?.text ?: return null
-        if (name != ":foreach" && name != ":for" && name != ":onerror") return null
+        val name = statement.firstChild?.text?.removePrefix(":") ?: return null
+        if (name != "foreach" && name != "for" && name != "onerror") return null
         val word = RosPsiUtil.arguments(statement).firstOrNull()?.takeIf { it.node.elementType == RosTypes.WORD } ?: return null
         val variable = word.text.substringAfter(',').ifEmpty { word.text }
         return Declaration(variable, word, Kind.LOOP)

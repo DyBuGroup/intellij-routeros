@@ -6,6 +6,14 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Command words (`set`, `add`, `find`…) under a menu the bundled schemas do not know, such as
+  `/interface wifiwave2` from older RouterOS versions, are coloured as commands instead of menu paths
+- Script commands written without `:` (`if (…) do={…}`, `foreach`, `local`, `put`, `delay`…, as in
+  MikroTik's own default configuration) are recognised like `:if`; `set`, `find` and `log` stay menu
+  commands
+
 ## [1.0.3] - 2026-11-07
 
 ### Changed
