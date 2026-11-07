@@ -6,6 +6,14 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-07
+
+### Changed
+
+- Replaced deprecated IntelliJ Platform APIs reported by the Marketplace verifier (list renderers,
+  message bundle, opening the exported configuration)
+- CI verifies the plugin against one IDE only; release signing is optional
+
 ## [1.0.2-beta] - 2026-11-07
 
 ### Added
@@ -20,7 +28,6 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Licence changed from MIT to the Apache License 2.0
-
 - WinBox terminal colours: commands purple, menu paths blue, property names green, values in the
   default text colour, in every scheme based on the bundled light or dark schemes (Islands, Dark,
   Light, High contrast…) and in Monokai schemes (using Monokai's own purple, blue and green)
@@ -65,7 +72,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Runs execute as background jobs so log tail and Stop stay responsive
 - Experimental pseudo-debugger behind an advanced setting
 
-[Unreleased]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.2-beta...HEAD
+[Unreleased]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.2-beta...v1.0.3
 [1.0.2-beta]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.1...v1.0.2-beta
 [1.0.1]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/DyBuGroup/intellij-routeros/commits/v1.0.0

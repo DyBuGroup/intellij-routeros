@@ -38,8 +38,8 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
     private val passwordField = JBPasswordField()
     private val tlsCombo = ComboBox(TlsMode.entries.toTypedArray())
     private val proxyCombo = ComboBox(ProxyMode.entries.toTypedArray()).apply {
-        renderer = com.intellij.ui.SimpleListCellRenderer.create("") { value ->
-            RosBundle.message("device.settings.proxy." + (value ?: ProxyMode.AUTO).name.lowercase())
+        renderer = com.intellij.ui.SimpleListCellRenderer.create { label, value, _ ->
+            label.text = RosBundle.message("device.settings.proxy." + (value ?: ProxyMode.AUTO).name.lowercase())
         }
     }
     private val pinField = JBTextField()
@@ -51,7 +51,7 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
     private val schemaCombo = ComboBox(
         (listOf(RosDeviceSettings.AUTO_SCHEMA) + dev.dybug.routeros.schema.RosSchemaLoader.bundledVersions).toTypedArray(),
     ).apply {
-        renderer = com.intellij.ui.SimpleListCellRenderer.create("") { value -> schemaLabel(value) }
+        renderer = com.intellij.ui.SimpleListCellRenderer.create { label, value, _ -> label.text = schemaLabel(value) }
     }
 
     /** The stored choice, or "auto" when it names a version that is no longer bundled. */
