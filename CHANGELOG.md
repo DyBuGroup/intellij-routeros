@@ -20,7 +20,6 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 - Replaced deprecated IntelliJ Platform APIs reported by the Marketplace verifier (list renderers,
   message bundle, opening the exported configuration)
-- CI verifies the plugin against one IDE only; release signing is optional
 
 ## [1.0.2-beta] - 2026-11-07
 
@@ -28,8 +27,6 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 - Bundled command reference for MikroTik's stable, long-term and development channels
   (RouterOS 7.25, 7.24, 7.26); *Automatic* picks the one matching the connected router
-- Monthly workflow that regenerates the schemas and opens a pull request
-- Release workflow can be started manually; security policy
 - Per-connection proxy setting; by default routers on the local network are reached directly
   instead of through the IDE's HTTP proxy
 

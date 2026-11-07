@@ -1,12 +1,10 @@
 name: Release
 
-# Either push a tag vX.Y.Z[-suffix] matching pluginVersion, or run this workflow manually on main:
-# it then builds main and creates the tag v<pluginVersion> once the release has been published.
+# Runs only when a tag vX.Y.Z[-suffix] matching pluginVersion is pushed.
 on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,8 +15,6 @@ concurrency:
 
 jobs:
   build:
-    # manual runs only from main, never from an unreviewed branch
-    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: marketplace
     outputs:
@@ -41,19 +37,12 @@ jobs:
       - name: Determine and check the tag
         id: version
         env:
-          EVENT: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
         run: |
           version=$(grep '^pluginVersion' gradle.properties | cut -d= -f2 | tr -d ' ')
           tag="v$version"
           echo "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$' || { echo "unexpected version $version"; exit 1; }
-          if [ "$EVENT" = "push" ]; then
-            test "$REF_NAME" = "$tag" || { echo "tag $REF_NAME does not match pluginVersion $version"; exit 1; }
-          elif gh api "repos/$GH_REPO/git/ref/tags/$tag" >/dev/null 2>&1; then
-            echo "tag $tag already exists; bump pluginVersion first"; exit 1
-          fi
+          test "$REF_NAME" = "$tag" || { echo "tag $REF_NAME does not match pluginVersion $version"; exit 1; }
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Test, verify and build
@@ -88,8 +77,7 @@ jobs:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: ./gradlew publishPlugin
 
-  # only this job can write to the repository, and it runs no build code; for manual runs it also
-  # creates the tag, on the commit that was built
+  # only this job can write to the repository, and it runs no build code
   github-release:
     needs: build
     runs-on: ubuntu-latest
