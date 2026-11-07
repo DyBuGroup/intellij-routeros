@@ -5,8 +5,19 @@ import junit.framework.TestCase
 class RosSchemaTest : TestCase() {
     private val schema = RosSchemaLoader.loadBundled()
 
+    fun testBundledChannels() {
+        val names = RosSchemaLoader.channels.map { it.name }
+        assertEquals(listOf("stable", "long-term", "development"), names)
+        assertEquals(RosSchemaLoader.channels.first().version, RosSchemaLoader.defaultVersion)
+        for (version in RosSchemaLoader.bundledVersions) {
+            val loaded = RosSchemaLoader.loadBundled(version)
+            assertEquals(version, loaded.version)
+            assertNotNull(version, loaded.node(listOf("ip", "address")))
+        }
+    }
+
     fun testBundledSchemaLoads() {
-        assertEquals("7.26", schema.version)
+        assertEquals(RosSchemaLoader.defaultVersion, schema.version)
         val address = schema.node(listOf("ip", "address"))!!
         assertEquals(SchemaNode.Kind.DIRECTORY, address.kind)
         assertTrue(address.args.getValue("interface").mandatory)

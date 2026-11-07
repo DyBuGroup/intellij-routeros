@@ -26,6 +26,10 @@ application {
 
 tasks.named<JavaExec>("run") {
     workingDir = rootProject.projectDir
+    // use the same proxy as Gradle itself (systemProp.https.proxyHost in ~/.gradle/gradle.properties)
+    for (key in listOf("http.proxyHost", "http.proxyPort", "https.proxyHost", "https.proxyPort", "http.nonProxyHosts")) {
+        providers.systemProperty(key).orNull?.let { systemProperty(key, it) }
+    }
 }
 
 tasks.test {

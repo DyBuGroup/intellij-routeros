@@ -11,8 +11,32 @@ import java.util.zip.GZIPInputStream
 object RosSchemaLoader {
     const val SUPPORTED_FORMAT = 1
 
-    /** Loads the bundled schema; [merge] (a schema synced from a router) adds menus and arguments. */
-    fun loadBundled(version: String = BUNDLED_VERSION, merge: JsonObject? = null): RosSchema {
+    /** A bundled release channel: `stable` → docs version `7.25`, current release `7.25.1`. */
+    data class Channel(val name: String, val version: String, val release: String)
+
+    /** The bundled channels (schema/index.json, written by the extractor's --channels mode); the first is the default. */
+    val channels: List<Channel> by lazy {
+        try {
+            val json = resource("/schema/index.json").use { it.reader(Charsets.UTF_8).use(JsonParser::parseReader) }.asJsonObject
+            require(json.get("format")?.asInt == SUPPORTED_FORMAT) { "unsupported schema index format" }
+            val default = json.str("default")
+            json.getAsJsonObject("channels").entrySet()
+                .map { (name, value) -> Channel(name, value.asJsonObject.str("version")!!, value.asJsonObject.str("release").orEmpty()) }
+                .sortedBy { if (it.name == default) 0 else 1 }
+        } catch (e: Exception) {
+            com.intellij.openapi.diagnostic.Logger.getInstance(RosSchemaLoader::class.java).error("Cannot read schema/index.json", e)
+            emptyList()
+        }
+    }
+
+    val bundledVersions: List<String> get() = channels.map { it.version }.distinct()
+
+    /** The default channel's version ("" when the index is broken: loading then fails and features degrade). */
+    val defaultVersion: String get() = channels.firstOrNull()?.version.orEmpty()
+
+    /** Loads a bundled schema; [merge] (a schema synced from a router) adds menus and arguments. */
+    fun loadBundled(version: String = defaultVersion, merge: JsonObject? = null): RosSchema {
+        require(version in bundledVersions) { "no bundled schema for RouterOS $version" }
         val schema = resource("/schema/routeros-$version.json.gz").use { GZIPInputStream(it).reader(Charsets.UTF_8).use(JsonParser::parseReader) }.asJsonObject
         val builtins = resource("/schema/builtins.json").use { it.reader(Charsets.UTF_8).use(JsonParser::parseReader) }
         if (merge != null) merge(schema, merge)
@@ -137,7 +161,6 @@ object RosSchemaLoader {
 
     private fun JsonObject.flag(key: String): Boolean = get(key)?.asInt == 1
 
-    const val BUNDLED_VERSION = "7.26"
 
     private val VALUED_PRINT_PARAMETERS = setOf("file", "from", "interval", "order-by", "proplist", "where")
 }

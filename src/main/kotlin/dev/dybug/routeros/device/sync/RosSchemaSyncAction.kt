@@ -42,6 +42,7 @@ class RosSchemaSyncAction : AnAction(), DumbAware {
                         val version = client.version()
                         RosDeviceSettings.getInstance(project).rememberVersion(profile.name, version)
                         val scriptCommands = RosSchemaService.getInstance().schema?.builtins?.scriptCommands?.keys.orEmpty()
+                        // the overlay is merged onto the bundled version closest to the router
                         val walker = RosDeviceSchemaWalker(client, scriptCommands)
                         val nodes = walker.walk(indicator)
                         RosProjectSchemaService.getInstance(project).store(version.substringBefore(' '), nodes)

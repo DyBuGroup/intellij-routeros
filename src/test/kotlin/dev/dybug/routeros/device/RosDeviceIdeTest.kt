@@ -49,4 +49,32 @@ class RosDeviceIdeTest : BasePlatformTestCase() {
         assertNull(settings.profile("missing"))
         assertEquals("lab", settings.profile("")?.name)
     }
+
+    fun testSchemaVersionFollowsRouterOrSelection() {
+        val settings = RosDeviceSettings.getInstance(project)
+        val service = dev.dybug.routeros.schema.RosProjectSchemaService.getInstance(project)
+        val bundled = dev.dybug.routeros.schema.RosSchemaLoader.bundledVersions
+        val oldest = bundled.minWith(dev.dybug.routeros.schema.RosProjectSchemaService::compareVersions)
+        val newest = bundled.maxWith(dev.dybug.routeros.schema.RosProjectSchemaService::compareVersions)
+        fun routerRuns(version: String) {
+            settings.update(listOf(RouterProfile().apply { name = "lab"; lastSeenVersion = version }), "lab")
+            service.refreshNow()
+        }
+        try {
+            routerRuns("$oldest.6")
+            assertEquals(oldest, service.effectiveVersion)
+            assertEquals(oldest, service.schema?.version)
+            routerRuns("9.99")
+            assertEquals(newest, service.effectiveVersion)
+            routerRuns("6.49.10")
+            assertEquals(dev.dybug.routeros.schema.RosSchemaLoader.defaultVersion, service.effectiveVersion)
+            settings.state.schemaVersion = newest
+            routerRuns("$oldest.6")
+            assertEquals(newest, service.effectiveVersion)
+        } finally {
+            settings.state.schemaVersion = RosDeviceSettings.AUTO_SCHEMA
+            settings.update(emptyList(), "")
+            service.refreshNow()
+        }
+    }
 }

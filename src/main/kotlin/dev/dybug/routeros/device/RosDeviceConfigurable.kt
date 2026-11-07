@@ -42,6 +42,23 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
     private val defaultCheck = JBCheckBox(RosBundle.message("device.settings.default"))
     private val status = JBLabel()
 
+    /** "auto" or a bundled version; shown with its channel and release. */
+    private val schemaCombo = ComboBox(
+        (listOf(RosDeviceSettings.AUTO_SCHEMA) + dev.dybug.routeros.schema.RosSchemaLoader.bundledVersions).toTypedArray(),
+    ).apply {
+        renderer = com.intellij.ui.SimpleListCellRenderer.create("") { value -> schemaLabel(value) }
+    }
+
+    /** The stored choice, or "auto" when it names a version that is no longer bundled. */
+    private fun normalizedSchemaVersion(): String =
+        settings.state.schemaVersion.takeIf { it in dev.dybug.routeros.schema.RosSchemaLoader.bundledVersions } ?: RosDeviceSettings.AUTO_SCHEMA
+
+    private fun schemaLabel(value: String?): String {
+        if (value == null || value == RosDeviceSettings.AUTO_SCHEMA) return RosBundle.message("device.settings.schema.auto")
+        val channels = dev.dybug.routeros.schema.RosSchemaLoader.channels.filter { it.version == value }
+        return RosBundle.message("device.settings.schema.version", value, channels.joinToString(", ") { "${it.name} ${it.release}" })
+    }
+
     override fun getDisplayName(): String = RosBundle.message("device.settings.title")
 
     override fun disposeUIResources() {
@@ -77,6 +94,10 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
                 cell(status)
             }
             row { comment(RosBundle.message("device.settings.policy.comment")) }
+            separator()
+            row(RosBundle.message("device.settings.schema")) {
+                cell(schemaCombo).comment(RosBundle.message("device.settings.schema.comment"))
+            }
         }
     }
 
@@ -84,6 +105,7 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
         profiles.clear()
         settings.profiles.forEach { profiles += it.copy() }
         defaultName = settings.state.defaultProfile
+        schemaCombo.selectedItem = normalizedSchemaVersion()
         passwords.clear()
         passwordsLoaded = false
         passwordsChanged = false
@@ -112,6 +134,7 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
         saveFields()
         val saved = settings.profiles
         if (saved.size != profiles.size || defaultName != settings.state.defaultProfile) return true
+        if (schemaCombo.selectedItem != normalizedSchemaVersion()) return true
         if (saved.zip(profiles).any { (a, b) -> !same(a, b) }) return true
         return passwordsChanged
     }
@@ -152,6 +175,12 @@ class RosDeviceConfigurable(private val project: Project) : Configurable {
             )
         }
         settings.update(profiles, defaultName.takeIf { it in names } ?: names.firstOrNull().orEmpty())
+        val schemaVersion = schemaCombo.selectedItem as? String ?: RosDeviceSettings.AUTO_SCHEMA
+        if (schemaVersion != settings.state.schemaVersion) {
+            settings.state.schemaVersion = schemaVersion
+            dev.dybug.routeros.schema.RosProjectSchemaService.getInstance(project).selectionChanged()
+        }
+        com.intellij.ui.EditorNotifications.getInstance(project).updateAllNotifications()
         if (passwordsLoaded && (passwordsChanged || keysChanged)) {
             // write only what changed: a password that failed to load (locked safe) must not be erased
             val toStore = byKey.mapValues { (_, group) -> passwords[group.first()].orEmpty() }

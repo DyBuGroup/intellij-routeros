@@ -24,7 +24,7 @@ import java.util.zip.GZIPOutputStream
  */
 @Service(Service.Level.PROJECT)
 class RosProjectSchemaService(private val project: Project) {
-    private class Snapshot(val file: File?, val stamp: Long, val schema: RosSchema?)
+    private class Snapshot(val file: File?, val stamp: Long, val version: String, val schema: RosSchema?)
 
     @Volatile
     private var snapshot: Snapshot? = null
@@ -33,23 +33,46 @@ class RosProjectSchemaService(private val project: Project) {
     private var checkedAt = 0L
 
     val schema: RosSchema?
-        get() = current().schema ?: RosSchemaService.getInstance().schema
+        get() = current().let { it.schema ?: RosSchemaService.getInstance().bundled(it.version) } ?: RosSchemaService.getInstance().schema
 
     val syncedVersion: String? get() = current().file?.name?.removeSuffix(".json.gz")
+
+    /** The bundled version this project uses (before merging a synced schema). */
+    val effectiveVersion: String get() = current().version
+
+    /**
+     * The selected bundled version; with "auto" the version matching the connected router (by
+     * major.minor), else the newest bundled version not newer than the router, else the default.
+     */
+    private fun selectedVersion(): String {
+        val bundled = RosSchemaLoader.bundledVersions
+        val settings = dev.dybug.routeros.device.RosDeviceSettings.getInstance(project)
+        val selected = settings.state.schemaVersion
+        if (bundled.isEmpty()) return RosSchemaLoader.defaultVersion
+        if (selected != dev.dybug.routeros.device.RosDeviceSettings.AUTO_SCHEMA && selected in bundled) return selected
+        // the synced file comes from the last snapshot: no disk access on this hot path
+        val synced = snapshot?.file ?: if (snapshot == null) syncedFile() else null
+        val router = (settings.profile(null)?.lastSeenVersion?.takeIf { it.isNotBlank() } ?: synced?.name?.removeSuffix(".json.gz"))
+            ?.let(::minorOf) ?: return RosSchemaLoader.defaultVersion
+        if (router in bundled) return router
+        return bundled.filter { compareVersions(it, router) <= 0 }.maxWithOrNull(::compareVersions) ?: RosSchemaLoader.defaultVersion
+    }
 
     /** Cheap most of the time; a changed file is parsed outside any lock and published atomically. */
     private fun current(): Snapshot {
         val now = System.currentTimeMillis()
         val known = snapshot
-        if (known != null && now - checkedAt < RECHECK_MILLIS) return known
+        // the selected version is read every time (a settings change applies at once); files every few seconds
+        val version = selectedVersion()
+        if (known != null && known.version == version && now - checkedAt < RECHECK_MILLIS) return known
         checkedAt = now
         val file = syncedFile()
         val stamp = file?.let { it.lastModified() xor it.length() } ?: 0L
-        if (known != null && known.file == file && known.stamp == stamp) return known
-        val fresh = Snapshot(file, stamp, file?.let(::load))
+        if (known != null && known.file == file && known.stamp == stamp && known.version == version) return known
+        val fresh = Snapshot(file, stamp, version, if (file != null) load(file, version) else RosSchemaService.getInstance().bundled(version))
         synchronized(this) {
             val previous = snapshot
-            if (previous != null && previous.file == fresh.file && previous.stamp == fresh.stamp) return previous
+            if (previous != null && previous.file == fresh.file && previous.stamp == fresh.stamp && previous.version == fresh.version) return previous
             snapshot = fresh
             if (previous != null) invalidateAnalysis()
         }
@@ -87,11 +110,11 @@ class RosProjectSchemaService(private val project: Project) {
         }, project.disposed)
     }
 
-    private fun load(file: File): RosSchema? = try {
+    private fun load(file: File, version: String): RosSchema? = try {
         if (file.length() > MAX_COMPRESSED_BYTES) throw IOException("synced schema is too large")
         val synced = BoundedInputStream(GZIPInputStream(file.inputStream()), MAX_DECOMPRESSED_BYTES)
             .reader(Charsets.UTF_8).use { JsonParser.parseReader(it) }.asJsonObject
-        RosSchemaLoader.loadBundled(merge = synced)
+        RosSchemaLoader.loadBundled(version, merge = synced)
     } catch (e: Exception) {
         LOG.warn("Cannot load synced schema $file", e)
         null
@@ -138,8 +161,33 @@ class RosProjectSchemaService(private val project: Project) {
         }
     }
 
+    /** Called when the selection changes: re-resolves the schema off the EDT and re-highlights. */
+    fun selectionChanged() {
+        checkedAt = 0L
+        ApplicationManager.getApplication().executeOnPooledThread { if (!project.isDisposed) current() }
+    }
+
+    /** Synchronous variant for tests. */
+    internal fun refreshNow() {
+        checkedAt = 0L
+        current()
+    }
+
     companion object {
         private val LOG = logger<RosProjectSchemaService>()
+
+        /** `7.25.1` → `7.25`, `7.26beta5` → `7.26`; null if not a RouterOS version. */
+        fun minorOf(version: String): String? = Regex("""^(\d+)\.(\d+)""").find(version.trim())?.let { "${it.groupValues[1]}.${it.groupValues[2]}" }
+
+        fun compareVersions(a: String, b: String): Int {
+            val left = a.split('.').map { it.toIntOrNull() ?: 0 }
+            val right = b.split('.').map { it.toIntOrNull() ?: 0 }
+            for (i in 0 until maxOf(left.size, right.size)) {
+                val diff = left.getOrElse(i) { 0 } - right.getOrElse(i) { 0 }
+                if (diff != 0) return diff
+            }
+            return 0
+        }
         private const val RECHECK_MILLIS = 5_000L
         private const val MAX_COMPRESSED_BYTES = 16L * 1024 * 1024
         private const val MAX_DECOMPRESSED_BYTES = 64L * 1024 * 1024

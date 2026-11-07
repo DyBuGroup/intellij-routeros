@@ -12,35 +12,67 @@ import kotlin.system.exitProcess
 private const val DEFAULT_SOURCE = "https://manual.mikrotik.com/llms-full.txt"
 
 /**
- * Generates the bundled RouterOS schema from the official CLI reference.
+ * Generates the bundled RouterOS schemas from the official CLI reference.
  *
  * ```
- * ./gradlew :tools:schema-extractor:run --args="--version 7.26"
+ * ./gradlew :tools:schema-extractor:run --args="--channels"        # one schema per release channel
+ * ./gradlew :tools:schema-extractor:run --args="--version 7.26"    # a single version
  * ```
  *
- * Options: `--version V` (required), `--source URL|FILE` (default: the manual's llms-full.txt),
- * `--out FILE`, `--overrides FILE`, `--cache DIR`, `--refresh` (ignore the cache).
+ * `--channels` asks upgrade.mikrotik.com for the current stable, long-term and development
+ * releases, generates a schema for each (from the manual's per-version docs), writes
+ * `schema/index.json` and removes schemas no channel uses any more.
+ *
+ * Options for `--version`: `--source URL|FILE` (default: the manual's llms-full.txt), `--out FILE`,
+ * `--overrides FILE`, `--cache DIR`, `--report FILE`, `--refresh` (ignore the cache).
  */
 fun main(args: Array<String>) {
     val options = parseOptions(args)
-    val version = options["version"] ?: usage("--version is required")
-    require(Regex("[0-9][0-9a-z.]*").matches(version)) { "invalid version '$version'" }
-    val source = options["source"] ?: DEFAULT_SOURCE
-    val out = File(options["out"] ?: "src/main/resources/schema/routeros-$version.json.gz")
-    val overrides = File(options["overrides"] ?: "src/main/resources/schema/overrides.json")
-    val cacheDir = File(options["cache"] ?: "build/schema-cache/$version")
-    val report = File(options["report"] ?: "tools/schema-extractor/reports/schema-report-$version.md")
+    if ("channels" in options) {
+        Channels.update(File(options["schema-dir"] ?: "src/main/resources/schema"), refresh = "refresh" in options)
+        return
+    }
+    val version = options["version"] ?: usage("--version or --channels is required")
+    generate(
+        version = version,
+        source = options["source"] ?: DEFAULT_SOURCE,
+        out = options["out"]?.let(::File),
+        overrides = options["overrides"]?.let(::File),
+        cacheDir = options["cache"]?.let(::File),
+        report = options["report"]?.let(::File),
+        refresh = "refresh" in options,
+    )
+}
 
-    val text = load(source, cacheDir, refresh = "refresh" in options)
+/** Generates one schema; returns the number of reference pages. */
+fun generate(
+    version: String,
+    source: String,
+    out: File? = null,
+    overrides: File? = null,
+    cacheDir: File? = null,
+    report: File? = null,
+    refresh: Boolean = false,
+    previous: File? = null,
+): Int {
+    require(Regex("[0-9][0-9a-z.]*").matches(version)) { "invalid version '$version'" }
+    val outFile = out ?: File("src/main/resources/schema/routeros-$version.json.gz")
+    val overridesFile = overrides ?: File("src/main/resources/schema/overrides.json")
+    val reportFile = report ?: File("tools/schema-extractor/reports/schema-report-$version.md")
+    val text = load(source, cacheDir ?: File("build/schema-cache/$version"), refresh)
     val nodes = DocsParser.parse(text)
     if (nodes.size < 100) error("only ${nodes.size} reference pages found in $source; refusing to write a schema")
-    val previous = SchemaWriter.readGzip(out)
-    val overridesJson = if (overrides.isFile) JsonParser.parseString(overrides.readText()).asJsonObject else null
-    SchemaWriter.writeGzip(SchemaWriter.toJson(version, source, nodes, overridesJson), out)
-    report.absoluteFile.parentFile?.mkdirs()
-    report.writeText(SchemaWriter.report(version, nodes, previous))
-    println("Wrote ${nodes.size} nodes to $out; report: $report")
+    val previousSchema = SchemaWriter.readGzip(previous ?: outFile)
+    val overridesJson = if (overridesFile.isFile) JsonParser.parseString(overridesFile.readText()).asJsonObject else null
+    SchemaWriter.writeGzip(SchemaWriter.toJson(version, source, nodes, overridesJson), outFile)
+    reportFile.absoluteFile.parentFile?.mkdirs()
+    reportFile.writeText(SchemaWriter.report(version, nodes, previousSchema))
+    println("Wrote ${nodes.size} nodes to $outFile; report: $reportFile")
+    return nodes.size
 }
+
+/** Fetches a small HTTPS text resource (channel versions, the manual index). */
+internal fun fetchText(url: String, cacheDir: File, refresh: Boolean): String = load(url, cacheDir, refresh)
 
 private const val MAX_SOURCE_BYTES = 64L * 1024 * 1024
 
@@ -96,7 +128,7 @@ private fun parseOptions(args: Array<String>): Map<String, String> {
         val arg = args[i]
         if (!arg.startsWith("--")) usage("unexpected argument $arg")
         val key = arg.removePrefix("--")
-        if (key == "refresh") {
+        if (key == "refresh" || key == "channels") {
             result[key] = "true"
             i++
         } else {
@@ -109,6 +141,7 @@ private fun parseOptions(args: Array<String>): Map<String, String> {
 
 private fun usage(message: String): Nothing {
     System.err.println("error: $message")
-    System.err.println("usage: --version V [--source URL|FILE] [--out FILE] [--overrides FILE] [--cache DIR] [--report FILE] [--refresh]")
+    System.err.println("usage: --channels [--schema-dir DIR] [--refresh]")
+    System.err.println("       --version V [--source URL|FILE] [--out FILE] [--overrides FILE] [--cache DIR] [--report FILE] [--refresh]")
     exitProcess(2)
 }

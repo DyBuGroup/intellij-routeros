@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "default": "stable",
+  "channels": {
+    "stable": {
+      "version": "7.25",
+      "release": "7.25.1"
+    },
+    "long-term": {
+      "version": "7.24",
+      "release": "7.24.6"
+    },
+    "development": {
+      "version": "7.26",
+      "release": "7.26beta5"
+    }
+  }
+}
