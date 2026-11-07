@@ -49,6 +49,16 @@ files (`.rsc`).
 [GitHub Releases](https://github.com/DyBuGroup/intellij-routeros/releases) (or build it, see
 [CONTRIBUTING.md](CONTRIBUTING.md)) and use *Settings → Plugins → ⚙ → Install Plugin from Disk…*.
 
+## Screenshots
+
+![Syntax highlighting](docs/images/highlighting.png)
+
+![Completion of properties with their types](docs/images/completion.png)
+
+![Quick documentation from the CLI reference](docs/images/documentation.png)
+
+![Router connection settings](docs/images/connection-settings.png)
+
 ## RouterOS versions
 
 The plugin bundles the command reference of MikroTik's **stable**, **long-term** and
