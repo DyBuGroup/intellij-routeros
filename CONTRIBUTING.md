@@ -38,17 +38,19 @@ See [docs/architecture.md](docs/architecture.md).
 
 ## Releasing
 
-1. Move the *Unreleased* entries in `CHANGELOG.md` to a new version section.
-2. Set `pluginVersion` in `gradle.properties` (`1.2.0`, or `1.2.0-beta` for the beta channel:
-   the part after `-` up to the first `.` selects the Marketplace channel).
-3. `./gradlew check verifyPlugin buildPlugin`, then a manual smoke test in
-   `./gradlew runPyCharmLocal`: open an export, complete a property, run a script on a lab router.
-4. Commit, tag `vX.Y.Z` and push the tag. `.github/workflows/release.yml` checks that the tag
-   matches `pluginVersion`, signs and publishes the plugin and creates a GitHub release with the
-   changelog section.
+1. Move the *Unreleased* entries in `CHANGELOG.md` to a section named exactly like the version.
+2. Set `pluginVersion` in `gradle.properties`. A suffix selects the Marketplace channel:
+   `1.1.0-beta` → beta channel (and a GitHub pre-release), `1.1.0` → stable.
+3. Commit and push to `main`, then either
+   - run **Actions → Release → Run workflow** on `main` (it creates the tag `v<pluginVersion>`
+     on the built commit after publishing), or
+   - push the tag yourself: `git tag v1.1.0-beta && git push origin v1.1.0-beta`.
 
-Repository secrets (environment `marketplace`): `CERTIFICATE_CHAIN`, `PRIVATE_KEY`,
-`PRIVATE_KEY_PASSWORD` (see *Plugin Signing* in the IntelliJ Platform docs) and `PUBLISH_TOKEN`
-(a JetBrains Marketplace token). The very first upload to the Marketplace must be done by hand
-on plugins.jetbrains.com; `publishPlugin` works only for later versions. Publishing refuses to run
-without signing credentials.
+   The workflow checks that tag and version match, runs all tests and the plugin verifier, signs
+   the plugin, uploads it to the Marketplace and creates the GitHub release with the changelog.
+
+## RouterOS schemas
+
+`./gradlew :tools:schema-extractor:run --args="--channels"` regenerates the schemas of all release
+channels (see [docs/schema.md](docs/schema.md)). The **Update RouterOS schemas** workflow does the
+same every Monday and opens a pull request when something changed.

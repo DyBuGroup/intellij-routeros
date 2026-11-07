@@ -1,8 +1,19 @@
 # RouterOS schema
 
 Completion, documentation and the annotator use a generated description of the RouterOS
-command tree. It is bundled as `src/main/resources/schema/routeros-<version>.json.gz`
-(RouterOS 7.26 today) and treated like a lockfile: generated, reviewed, committed.
+command tree. One schema per MikroTik release channel is bundled as
+`src/main/resources/schema/routeros-<version>.json.gz`, listed in `schema/index.json`, and treated
+like a lockfile: generated, reviewed, committed.
+
+| Channel | Source of the version | Docs used |
+|---------|----------------------|-----------|
+| stable (default) | `https://upgrade.mikrotik.com/routeros/NEWESTa7.stable` | `manual.mikrotik.com/docs/<major.minor>/llms-full.txt` |
+| long-term | `…/NEWESTa7.long-term` | same, for its version |
+| development | `…/NEWESTa7.development` | the unversioned manual when it documents that version |
+
+A project uses the version chosen in *Settings → Languages & Frameworks → RouterOS*; *Automatic*
+takes the connected router's major.minor version if it is bundled, otherwise the newest bundled
+version not newer than the router, otherwise stable.
 
 ## Sources
 
@@ -15,8 +26,11 @@ command tree. It is bundled as `src/main/resources/schema/routeros-<version>.jso
 ## Regenerating
 
 ```
-./gradlew :tools:schema-extractor:run --args="--version 7.26"
+./gradlew :tools:schema-extractor:run --args="--channels"        # all channels, writes index.json
+./gradlew :tools:schema-extractor:run --args="--version 7.26"    # one version
 ```
+
+The **Update RouterOS schemas** GitHub workflow runs `--channels` weekly and opens a pull request.
 
 Options: `--source URL|FILE` (HTTPS only, or a local file), `--out`, `--overrides`,
 `--cache DIR` (default `build/schema-cache/<version>`), `--report`, `--refresh`.

@@ -17,6 +17,8 @@ files (`.rsc`).
   `on-event`, netwatch/DHCP/PPP script properties)
 - Completion for menu paths, commands, properties (`name=`), values (enums, yes/no,
   interface names from the file), `:` commands and variables in scope
+- Command reference for every MikroTik release channel — stable, long-term and development —
+  picked automatically from the connected router or chosen in the settings
 - Quick documentation (Ctrl+Q) from the official CLI reference, parameter info (Ctrl+P)
 - Go to declaration, find usages and rename for variables and functions (`:global` across files),
   Go to Symbol, gutter icons on functions
@@ -28,8 +30,8 @@ files (`.rsc`).
   56 live templates, *New → RouterOS Script*, surround with, spell checking in comments/strings
 - Router integration over the REST API: run configurations (execute, upload & run, import)
   with clickable errors and live log, validate with the router's parser, open/compare
-  `/export`, schema sync from the router, log tool window — see
-  [docs/device-integration.md](docs/device-integration.md)
+  `/export`, schema sync from the router, log tool window — see the
+  [device integration guide](https://github.com/DyBuGroup/intellij-routeros/blob/main/docs/device-integration.md)
 - Experimental pseudo-debugger (opt-in): breakpoints, stepping and variables through an
   instrumented copy of the script
 - Works fully offline; no router required for editing features
@@ -37,10 +39,32 @@ files (`.rsc`).
 
 ## Installation
 
-Until the first Marketplace release, build the plugin from source
-(see [CONTRIBUTING.md](CONTRIBUTING.md)) and install
-`build/distributions/*.zip` via *Settings → Plugins → ⚙ → Install Plugin from
-Disk…*.
+**From the beta channel** (until the first stable release):
+
+1. *Settings → Plugins → ⚙ → Manage Plugin Repositories…* → add
+   `https://plugins.jetbrains.com/plugins/beta/list`.
+2. Search the Marketplace tab for **RouterOS Script** and install it.
+
+**From a file:** download the zip from
+[GitHub Releases](https://github.com/DyBuGroup/intellij-routeros/releases) (or build it, see
+[CONTRIBUTING.md](CONTRIBUTING.md)) and use *Settings → Plugins → ⚙ → Install Plugin from Disk…*.
+
+## RouterOS versions
+
+The plugin bundles the command reference of MikroTik's **stable**, **long-term** and
+**development** release channels (currently RouterOS 7.25, 7.24 and 7.26). *Settings → Languages &
+Frameworks → RouterOS → RouterOS version* chooses one, or *Automatic* follows the connected router.
+A weekly workflow regenerates the schemas when MikroTik publishes new releases.
+
+## Documentation
+
+- [Device integration](docs/device-integration.md) — connections, running, validation, debugger
+- [Schema](docs/schema.md) — where completion data comes from and how it is regenerated
+- [Architecture](docs/architecture.md) — for contributors
+
+## Security
+
+Please report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
 
 ## License
 
