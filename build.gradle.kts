@@ -74,7 +74,7 @@ intellijPlatform {
         }
 
         vendor {
-            name = "dybug"
+            name = "DyBuG"
             email = "maheshmatkhah.prg@gmail.com"
             url = "https://dybug.ir"
         }

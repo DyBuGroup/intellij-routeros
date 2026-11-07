@@ -1,7 +1,7 @@
 <idea-plugin>
   <id>dev.dybug.routeros</id>
   <name>RouterOS Script</name>
-  <vendor>dybug</vendor>
+  <vendor>DyBuG</vendor>
   <resource-bundle>messages.RosBundle</resource-bundle>
 
   <depends>com.intellij.modules.platform</depends>
