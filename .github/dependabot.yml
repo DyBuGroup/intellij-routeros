@@ -15,3 +15,7 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+    ignore:
+      # v6 makes the caching component closed source under Gradle's Terms of Use; stay on v5
+      - dependency-name: gradle/actions*
+        update-types: ["version-update:semver-major"]
