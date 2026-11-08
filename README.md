@@ -4,6 +4,8 @@ Language support for MikroTik RouterOS scripts and `/export` configuration
 files (`.rsc`) in IntelliJ IDEA, PyCharm and every other JetBrains IDE based on
 IntelliJ Platform 2025.1 or newer.
 
+[![Get it on JetBrains Marketplace](https://img.shields.io/badge/Get%20it%20on-JetBrains%20Marketplace-000000?logo=jetbrains&logoColor=white)](https://plugins.jetbrains.com/plugin/35883-routeros-script/)
+
 <!-- Plugin description -->
 Language support for **MikroTik RouterOS** scripts and `/export` configuration
 files (`.rsc`).
@@ -39,11 +41,11 @@ files (`.rsc`).
 
 ## Installation
 
-**From the beta channel** (until the first stable release):
+**From JetBrains Marketplace:** *Settings → Plugins → Marketplace*, search for **RouterOS Script**
+and install it, or use *Install* on the [plugin's Marketplace page](https://plugins.jetbrains.com/plugin/35883-routeros-script/).
 
-1. *Settings → Plugins → ⚙ → Manage Plugin Repositories…* → add
-   `https://plugins.jetbrains.com/plugins/beta/list`.
-2. Search the Marketplace tab for **RouterOS Script** and install it.
+**Beta versions:** *Settings → Plugins → ⚙ → Manage Plugin Repositories…* → add
+`https://plugins.jetbrains.com/plugins/beta/list`, then install or update as above.
 
 **From a file:** download the zip from
 [GitHub Releases](https://github.com/DyBuGroup/intellij-routeros/releases) (or build it, see
