@@ -6,6 +6,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-11-21
+
 ### Changed
 
 - Comment with Line Comment (Ctrl+/) puts a space after `#` (`# add …`) and removes it again when
@@ -83,7 +85,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Runs execute as background jobs so log tail and Stop stay responsive
 - Experimental pseudo-debugger behind an advanced setting
 
-[Unreleased]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.2-beta...v1.0.3
 [1.0.2-beta]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.1...v1.0.2-beta
 [1.0.1]: https://github.com/DyBuGroup/intellij-routeros/compare/v1.0.0...v1.0.1
