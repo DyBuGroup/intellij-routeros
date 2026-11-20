@@ -44,6 +44,8 @@
     <annotator language="RouterOS" implementationClass="dev.dybug.routeros.highlighting.RosAnnotator"/>
     <completion.contributor language="RouterOS"
                             implementationClass="dev.dybug.routeros.completion.RosCompletionContributor"/>
+    <completion.confidence language="RouterOS"
+                           implementationClass="dev.dybug.routeros.completion.RosCompletionConfidence"/>
     <codeInsight.parameterInfo language="RouterOS"
                                implementationClass="dev.dybug.routeros.completion.RosParameterInfoHandler"/>
     <lang.documentationProvider language="RouterOS"

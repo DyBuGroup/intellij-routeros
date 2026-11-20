@@ -6,8 +6,14 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Comment with Line Comment (Ctrl+/) puts a space after `#` (`# add …`) and removes it again when
+  uncommenting
+
 ### Fixed
 
+- No completion suggestions while typing a `#` comment
 - Command words (`set`, `add`, `find`…) under a menu the bundled schemas do not know, such as
   `/interface wifiwave2` from older RouterOS versions, are coloured as commands instead of menu paths
 - Script commands written without `:` (`if (…) do={…}`, `foreach`, `local`, `put`, `delay`…, as in

@@ -3,7 +3,7 @@ package dev.dybug.routeros.editor
 import com.intellij.lang.Commenter
 
 class RosCommenter : Commenter {
-    override fun getLineCommentPrefix(): String = "#"
+    override fun getLineCommentPrefix(): String = "# "
 
     override fun getBlockCommentPrefix(): String? = null
 

@@ -11,6 +11,7 @@ import com.intellij.codeInsight.completion.PrioritizedLookupElement
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.icons.AllIcons
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
@@ -39,6 +40,11 @@ import dev.dybug.routeros.schema.ValueType
 class RosCompletionContributor : CompletionContributor() {
     override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
         val position = parameters.position
+        if (isInComment(position)) {
+            // free text: no schema items and no word completion from other contributors
+            result.stopHere()
+            return
+        }
         val schema = RosSchemaService.schema(parameters.position.project) ?: return
         when (position.elementType) {
             RosTypes.DOLLAR_NAME -> completeVariables(position, result.withPrefixMatcher(prefix(parameters, 1)))
@@ -53,6 +59,11 @@ class RosCompletionContributor : CompletionContributor() {
             RosTypes.WORD, RosTypes.ARG_NAME, RosTypes.CONTROL_ARG ->
                 completeArgumentPosition(position, schema, result.withPrefixMatcher(prefix(parameters, 0)))
         }
+    }
+
+    companion object {
+        fun isInComment(element: PsiElement): Boolean =
+            element.elementType in RosTokenSets.COMMENTS || PsiTreeUtil.getParentOfType(element, PsiComment::class.java, false) != null
     }
 
     /** The typed text of the current token up to the caret, without a leading `$` or `:`. */

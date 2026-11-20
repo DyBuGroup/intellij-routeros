@@ -100,4 +100,11 @@ class RosCompletionTest : BasePlatformTestCase() {
         val items = complete("/ip address print detail <caret>")
         assertTrue(items.toString(), "without-paging" in items)
     }
+
+    fun testNothingInComment() {
+        myFixture.configureByText("test.rsc", ":local x [:toarray 1]\n# t<caret>\n")
+        val items = myFixture.completeBasic()
+        assertEquals(":local x [:toarray 1]\n# t\n", myFixture.editor.document.text)
+        assertTrue(items.isNullOrEmpty())
+    }
 }
